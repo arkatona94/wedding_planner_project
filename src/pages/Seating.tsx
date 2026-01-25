@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { useWeddingStore } from '../store/weddingStore'
 import type { Table } from '../types'
@@ -9,6 +10,7 @@ const tableShapes = [
 ]
 
 export default function Seating() {
+  // ... existing hooks ...
   const { guests, tables, addTable, updateTable, deleteTable, assignGuestToTable, removeGuestFromTable } = useWeddingStore()
   const [showAddTableModal, setShowAddTableModal] = useState(false)
   const [editingTable, setEditingTable] = useState<Table | null>(null)
@@ -87,11 +89,16 @@ export default function Seating() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif text-gray-800">Seating Chart</h1>
-          <p className="text-gray-500">
-            {seatedCount} of {attendingGuests.length} guests seated across {tables.length} tables
-          </p>
+        <div className="flex items-center gap-4">
+          <Link to="/guests" className="text-gray-500 hover:text-primary-600">
+            ← Back to Guests
+          </Link>
+          <div>
+            <h1 className="text-2xl font-serif text-gray-800">Seating Chart</h1>
+            <p className="text-gray-500">
+              {seatedCount} of {attendingGuests.length} guests seated across {tables.length} tables
+            </p>
+          </div>
         </div>
         <button onClick={() => setShowAddTableModal(true)} className="btn-primary">+ Add Table</button>
       </div>
@@ -165,9 +172,8 @@ export default function Seating() {
                 return (
                   <div
                     key={table.id}
-                    className={`card cursor-pointer transition-all ${
-                      isSelected ? 'ring-2 ring-primary-400' : ''
-                    } ${isFull ? 'bg-green-50' : ''}`}
+                    className={`card cursor-pointer transition-all ${isSelected ? 'ring-2 ring-primary-400' : ''
+                      } ${isFull ? 'bg-green-50' : ''}`}
                     onClick={() => setSelectedTable(isSelected ? null : table.id)}
                     onDragOver={handleDragOver}
                     onDrop={() => handleDropOnTable(table.id)}
@@ -281,11 +287,10 @@ export default function Seating() {
                       key={shape.value}
                       type="button"
                       onClick={() => setFormData({ ...formData, shape: shape.value as typeof formData.shape })}
-                      className={`p-3 rounded-lg border-2 flex flex-col items-center transition-colors ${
-                        formData.shape === shape.value
+                      className={`p-3 rounded-lg border-2 flex flex-col items-center transition-colors ${formData.shape === shape.value
                           ? 'border-primary-500 bg-primary-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <span className="text-2xl">{shape.icon}</span>
                       <span className="text-sm text-gray-600">{shape.label}</span>

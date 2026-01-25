@@ -112,38 +112,6 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Quick Navigation Panel */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-        <Link to="/checklist" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
-          <span className="text-2xl mb-2">✓</span>
-          <span className="font-medium text-gray-700">Checklist</span>
-        </Link>
-        <Link to="/budget" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
-          <span className="text-2xl mb-2">💰</span>
-          <span className="font-medium text-gray-700">Budget</span>
-        </Link>
-        <div className="flex flex-col gap-2">
-          <Link to="/guests" className="btn-secondary flex-1 flex flex-col items-center justify-center p-2 hover:bg-primary-50 hover:border-primary-200 transition-colors">
-            <span className="text-xl">👥</span>
-            <span className="text-sm font-medium text-gray-700">Guests</span>
-          </Link>
-          <Link to="/seating" className="btn-secondary flex-1 flex flex-col items-center justify-center p-2 hover:bg-primary-50 hover:border-primary-200 transition-colors">
-            <span className="text-xl">🪑</span>
-            <span className="text-sm font-medium text-gray-700">Seating</span>
-          </Link>
-        </div>
-        <Link to="/timeline" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
-          <span className="text-2xl mb-2">📅</span>
-          <span className="font-medium text-gray-700">Timeline</span>
-        </Link>
-        <Link to="/photos" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
-          <span className="text-2xl mb-2">📸</span>
-          <span className="font-medium text-gray-700">Photos</span>
-        </Link>
-        <Link to="/website" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
-          <span className="text-2xl mb-2">🌐</span>
-          <span className="font-medium text-gray-700">Website</span>
-        </Link>
-      </div>
       <div className="card bg-gradient-to-r from-primary-50 to-wedding-blush">
         <div className="flex items-center justify-between">
           <div>
@@ -161,6 +129,46 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Quick Navigation Panel */}
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+        <Link to="/checklist" className="group bg-blue-50/50 hover:bg-blue-50 p-3 rounded-2xl border border-blue-100 hover:border-blue-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+          <div className="w-10 h-10 rounded-full bg-white text-blue-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            ✓
+          </div>
+          <span className="text-sm font-medium text-gray-700">Checklist</span>
+        </Link>
+        <Link to="/budget" className="group bg-green-50/50 hover:bg-green-50 p-3 rounded-2xl border border-green-100 hover:border-green-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+          <div className="w-10 h-10 rounded-full bg-white text-green-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            💰
+          </div>
+          <span className="text-sm font-medium text-gray-700">Budget</span>
+        </Link>
+        <Link to="/guests" className="group bg-purple-50/50 hover:bg-purple-50 p-3 rounded-2xl border border-purple-100 hover:border-purple-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+          <div className="w-10 h-10 rounded-full bg-white text-purple-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            👥
+          </div>
+          <span className="text-sm font-medium text-gray-700">Guests</span>
+        </Link>
+        <Link to="/timeline" className="group bg-orange-50/50 hover:bg-orange-50 p-3 rounded-2xl border border-orange-100 hover:border-orange-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+          <div className="w-10 h-10 rounded-full bg-white text-orange-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            📅
+          </div>
+          <span className="text-sm font-medium text-gray-700">Timeline</span>
+        </Link>
+        <Link to="/photos" className="group bg-pink-50/50 hover:bg-pink-50 p-3 rounded-2xl border border-pink-100 hover:border-pink-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+          <div className="w-10 h-10 rounded-full bg-white text-pink-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            📸
+          </div>
+          <span className="text-sm font-medium text-gray-700">Photos</span>
+        </Link>
+        <Link to="/website" className="group bg-indigo-50/50 hover:bg-indigo-50 p-3 rounded-2xl border border-indigo-100 hover:border-indigo-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+          <div className="w-10 h-10 rounded-full bg-white text-indigo-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            🌐
+          </div>
+          <span className="text-sm font-medium text-gray-700">Website</span>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -1,7 +1,9 @@
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { useWeddingStore } from '../store/weddingStore'
 import { QRCodeSVG } from 'qrcode.react'
 import type { Guest, RSVPStatus } from '../types'
+
 
 const mealOptions = ['Chicken', 'Beef', 'Fish', 'Vegetarian', 'Vegan', 'Kids Meal']
 const dietaryOptions = ['Gluten-Free', 'Dairy-Free', 'Nut Allergy', 'Shellfish Allergy', 'Kosher', 'Halal']
@@ -36,7 +38,7 @@ export default function Guests() {
 
   const filteredGuests = guests.filter(guest => {
     const matchesSearch = `${guest.firstName} ${guest.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         guest.email.toLowerCase().includes(searchTerm.toLowerCase())
+      guest.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRSVP = rsvpFilter === 'all' || guest.rsvpStatus === rsvpFilter
     const matchesGroup = groupFilter === 'all' || guest.group === groupFilter
     return matchesSearch && matchesRSVP && matchesGroup
@@ -153,6 +155,10 @@ export default function Guests() {
           <p className="text-gray-500">{stats.total} guests invited</p>
         </div>
         <div className="flex gap-3">
+          <Link to="/seating" className="btn-secondary flex items-center gap-2">
+            <span className="text-xl">🪑</span>
+            Seating Chart
+          </Link>
           <button onClick={() => setShowQRModal(true)} className="btn-secondary">RSVP QR Code</button>
           <button onClick={() => setShowImportModal(true)} className="btn-secondary">Import CSV</button>
           <button onClick={exportCSV} className="btn-secondary">Export</button>
@@ -241,12 +247,11 @@ export default function Guests() {
                     </td>
                     <td className="px-4 py-3">
                       <select
-                        className={`text-sm px-2 py-1 rounded ${
-                          guest.rsvpStatus === 'attending' ? 'bg-green-100 text-green-800' :
+                        className={`text-sm px-2 py-1 rounded ${guest.rsvpStatus === 'attending' ? 'bg-green-100 text-green-800' :
                           guest.rsvpStatus === 'declined' ? 'bg-red-100 text-red-800' :
-                          guest.rsvpStatus === 'maybe' ? 'bg-blue-100 text-blue-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}
+                            guest.rsvpStatus === 'maybe' ? 'bg-blue-100 text-blue-800' :
+                              'bg-yellow-100 text-yellow-800'
+                          }`}
                         value={guest.rsvpStatus}
                         onChange={(e) => updateGuest(guest.id, { rsvpStatus: e.target.value as RSVPStatus })}
                       >
