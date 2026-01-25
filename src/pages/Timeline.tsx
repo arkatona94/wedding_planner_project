@@ -146,7 +146,7 @@ export default function Timeline() {
           <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200" />
 
           <div className="space-y-4">
-            {sortedEvents.map((event, index) => (
+            {sortedEvents.map((event) => (
               <div key={event.id} className="relative flex gap-6">
                 {/* Time marker */}
                 <div className="w-16 text-right flex-shrink-0 pt-1">
@@ -251,9 +251,8 @@ export default function Timeline() {
                       key={color.value}
                       type="button"
                       onClick={() => setFormData({ ...formData, color: color.value })}
-                      className={`w-8 h-8 rounded-full border-2 ${
-                        formData.color === color.value ? 'border-gray-800' : 'border-transparent'
-                      }`}
+                      className={`w-8 h-8 rounded-full border-2 ${formData.color === color.value ? 'border-gray-800' : 'border-transparent'
+                        }`}
                       style={{ backgroundColor: color.value }}
                       title={color.label}
                     />

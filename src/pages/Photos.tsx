@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import type { Photo } from '../types'
 
 export default function Photos() {
-  const { photos, addPhoto, deletePhoto, likePhoto, wedding } = useWeddingStore()
+  const { photos, addPhoto, deletePhoto, likePhoto } = useWeddingStore()
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showQRModal, setShowQRModal] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
@@ -78,17 +78,15 @@ export default function Photos() {
       <div className="flex gap-2">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            filter === 'all' ? 'bg-primary-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-          }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all' ? 'bg-primary-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
         >
           Recent
         </button>
         <button
           onClick={() => setFilter('most-liked')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            filter === 'most-liked' ? 'bg-primary-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-          }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'most-liked' ? 'bg-primary-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
         >
           Most Liked
         </button>
