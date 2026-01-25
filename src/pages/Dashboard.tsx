@@ -132,7 +132,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Navigation Panel */}
-      <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-3 lg:grid-cols-7 gap-3">
         <Link to="/checklist" className="group bg-blue-50/50 hover:bg-blue-50 p-3 rounded-2xl border border-blue-100 hover:border-blue-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
           <div className="w-10 h-10 rounded-full bg-white text-blue-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
             ✓
@@ -168,6 +168,12 @@ export default function Dashboard() {
             🌐
           </div>
           <span className="text-sm font-medium text-gray-700">Website</span>
+        </Link>
+        <Link to="/marriage-laws" className="group bg-teal-50/50 hover:bg-teal-50 p-3 rounded-2xl border border-teal-100 hover:border-teal-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+          <div className="w-10 h-10 rounded-full bg-white text-teal-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            ⚖️
+          </div>
+          <span className="text-sm font-medium text-gray-700">Laws</span>
         </Link>
       </div>
 

@@ -10,6 +10,8 @@ import Timeline from './pages/Timeline'
 import Photos from './pages/Photos'
 import Website from './pages/Website'
 import Settings from './pages/Settings'
+import MarriageLaws from './pages/MarriageLaws'
+
 
 function App() {
   return (
@@ -25,6 +27,7 @@ function App() {
         <Route path="photos" element={<Photos />} />
         <Route path="website" element={<Website />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="marriage-laws" element={<MarriageLaws />} />
       </Route>
     </Routes>
   )

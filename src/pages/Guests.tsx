@@ -104,21 +104,46 @@ export default function Guests() {
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
 
       const newGuests = lines.slice(1).map(line => {
+        // Handle CSVs with quoted values (simple parser) to avoid splitting on commas inside quotes
+        // But for now, sticking to simple split if complexity is low, or just assume standard CSV.
+        // User request is about mapping logic.
         const values = line.split(',').map(v => v.trim())
+
+        let firstName = values[headers.indexOf('first name')] || values[headers.indexOf('firstname')] || ''
+        let lastName = values[headers.indexOf('last name')] || values[headers.indexOf('lastname')] || ''
+
+        // Handle composite Name column if separate fields are missing
+        if (!firstName && !lastName) {
+          const fullName = values[headers.indexOf('name')] || values[headers.indexOf('full name')] || ''
+          if (fullName) {
+            const parts = fullName.split(' ')
+            if (parts.length > 0) {
+              lastName = parts.pop() || ''
+              firstName = parts.join(' ')
+            }
+          }
+        }
+
         const guest: Omit<Guest, 'id'> = {
-          firstName: values[headers.indexOf('first name')] || values[headers.indexOf('firstname')] || '',
-          lastName: values[headers.indexOf('last name')] || values[headers.indexOf('lastname')] || '',
-          email: values[headers.indexOf('email')] || '',
-          phone: values[headers.indexOf('phone')] || '',
-          address: { street: '', city: '', state: '', zipCode: '', country: 'USA' },
+          firstName,
+          lastName,
+          email: values[headers.indexOf('email')] || values[headers.indexOf('e-mail')] || '',
+          phone: values[headers.indexOf('phone')] || values[headers.indexOf('mobile')] || values[headers.indexOf('cell')] || '',
+          address: {
+            street: values[headers.indexOf('street')] || values[headers.indexOf('address')] || '',
+            city: values[headers.indexOf('city')] || '',
+            state: values[headers.indexOf('state')] || '',
+            zipCode: values[headers.indexOf('zip')] || values[headers.indexOf('zipcode')] || values[headers.indexOf('postal')] || '',
+            country: values[headers.indexOf('country')] || 'USA'
+          },
           rsvpStatus: 'pending',
-          mealChoice: '',
-          dietaryRestrictions: [],
-          plusOne: false,
-          plusOneName: '',
+          mealChoice: values[headers.indexOf('meal')] || values[headers.indexOf('meal choice')] || '',
+          dietaryRestrictions: (values[headers.indexOf('dietary')] || values[headers.indexOf('diet')] || '').split(';').filter(d => d.trim()),
+          plusOne: (values[headers.indexOf('plus one')] || '').toLowerCase() === 'yes',
+          plusOneName: values[headers.indexOf('plus one name')] || '',
           tableAssignment: null,
           group: values[headers.indexOf('group')] || '',
-          notes: ''
+          notes: values[headers.indexOf('notes')] || ''
         }
         return guest
       }).filter(g => g.firstName || g.lastName)
@@ -145,10 +170,22 @@ export default function Guests() {
     a.click()
   }
 
+  const downloadTemplate = () => {
+    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Street', 'City', 'State', 'Zip', 'Country', 'Group', 'Meal', 'Dietary', 'Plus One', 'Plus One Name', 'Notes']
+    const csv = headers.join(',')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'guest-import-template.csv'
+    a.click()
+  }
+
   const rsvpUrl = `${window.location.origin}/rsvp`
 
   return (
     <div className="space-y-6">
+      {/* ... (Header) */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-serif text-gray-800">Guest Management</h1>
@@ -165,6 +202,8 @@ export default function Guests() {
           <button onClick={() => setShowAddModal(true)} className="btn-primary">+ Add Guest</button>
         </div>
       </div>
+
+      {/* ... (Rest of UI unchanged) */}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -311,8 +350,15 @@ export default function Guests() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Group</label>
-                  <input type="text" className="input-field" placeholder="e.g., Bride's Family" value={formData.group}
-                    onChange={(e) => setFormData({ ...formData, group: e.target.value })} />
+                  <select
+                    className="input-field"
+                    value={formData.group}
+                    onChange={(e) => setFormData({ ...formData, group: e.target.value })}
+                  >
+                    <option value="">Select Group</option>
+                    <option value="Bride">Bride</option>
+                    <option value="Groom">Groom</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Meal Choice</label>
@@ -367,8 +413,16 @@ export default function Guests() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <h2 className="text-xl font-serif text-gray-800 mb-4">Import Guests from CSV</h2>
+
+            <div className="mb-6 bg-blue-50 p-4 rounded-lg">
+              <p className="text-sm text-blue-800 mb-2 font-medium">Use the standard template for best results.<br /></p>
+              <button onClick={downloadTemplate} className="text-sm text-primary-600 hover:text-primary-700 underline font-medium">
+                Download CSV Template With Headers
+              </button>
+            </div>
+
             <p className="text-sm text-gray-600 mb-4">
-              Upload a CSV file with columns: First Name, Last Name, Email, Phone, Group
+              Supported columns: First Name, Last Name, Email, Phone, Street, City, State, Zip, Country, Group, Meal, Dietary, Plus One, Notes
             </p>
             <input type="file" accept=".csv" onChange={handleImportCSV} className="input-field" />
             <div className="flex gap-3 justify-end pt-4">

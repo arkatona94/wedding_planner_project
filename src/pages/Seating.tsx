@@ -10,37 +10,106 @@ const tableShapes = [
 ]
 
 export default function Seating() {
-  // ... existing hooks ...
   const { guests, tables, addTable, updateTable, deleteTable, assignGuestToTable, removeGuestFromTable } = useWeddingStore()
   const [showAddTableModal, setShowAddTableModal] = useState(false)
   const [editingTable, setEditingTable] = useState<Table | null>(null)
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
   const [draggedGuest, setDraggedGuest] = useState<string | null>(null)
 
+  // State for form data
   const [formData, setFormData] = useState({
     name: '',
     capacity: 8,
     shape: 'round' as 'round' | 'rectangular' | 'square',
     x: 100,
-    y: 100
+    y: 100,
+    quantity: 1
   })
 
-  const attendingGuests = guests.filter(g => g.rsvpStatus === 'attending')
-  const unseatedGuests = attendingGuests.filter(g => !g.tableAssignment)
-  const seatedCount = attendingGuests.filter(g => g.tableAssignment).length
+  const guestsToSeat = guests.filter(g => g.rsvpStatus !== 'declined')
+  const unseatedGuests = guestsToSeat.filter(g => !g.tableAssignment)
+  const seatedCount = guestsToSeat.filter(g => g.tableAssignment).length
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (editingTable) {
-      updateTable(editingTable.id, formData)
+      // Remove quantity from update
+      const { quantity, ...updateData } = formData
+      updateTable(editingTable.id, updateData)
     } else {
-      addTable({ ...formData, guests: [] })
+      // Handle multiple table creation
+      const quantity = formData.quantity || 1
+      const baseName = formData.name.trim()
+
+      // Check if name ends with a number
+      const match = baseName.match(/^(.*?)(\d+)$/)
+      let namePrefix = baseName
+      let startNum = 1
+
+      if (match) {
+        namePrefix = match[1]
+        startNum = parseInt(match[2])
+      } else {
+        namePrefix = baseName + ' '
+      }
+
+      let currentSeqNum = startNum
+
+      // Force numbered logic if there's a collision with baseName for Qty=1
+      let forceNumbering = false
+      if (quantity === 1 && !match && tables.some(t => t.name === baseName)) {
+        forceNumbering = true
+        namePrefix = baseName + ' '
+        currentSeqNum = 1 // Start looking from 1 (e.g. Table 1, Table 2)
+      }
+
+      for (let i = 0; i < quantity; i++) {
+        let finalName = ''
+
+        while (true) {
+          if (quantity > 1 || match || forceNumbering) {
+            finalName = `${namePrefix}${currentSeqNum}`.trim()
+          } else {
+            // For Qty=1 non-numbered, unique name. 
+            // We already checked collision above (forceNumbering), so this branch implies safe to use baseName or match failed?
+            // Actually if forceNumbering is false, it means baseName is free.
+            finalName = baseName
+          }
+
+          if (tables.some(t => t.name === finalName)) {
+            // Collision detected (likely in loop iteration). Increment and retry.
+            currentSeqNum++
+            // If we weren't numbering, we MUST start numbering now?
+            // But forceNumbering logic above handles the initial collision.
+            // This branch handles collision with e.g. "Table 3" when we wanted "Table 3".
+            forceNumbering = true
+            // Ensure prefix is set if we just switched
+            if (!namePrefix.endsWith(' ')) namePrefix = match ? namePrefix : baseName + ' '
+          } else {
+            // Unique found
+            // If we used a number, ensure next iteration starts AFTER this one
+            if (quantity > 1 || match || forceNumbering) {
+              currentSeqNum++
+            }
+            break
+          }
+        }
+
+        addTable({
+          name: finalName,
+          capacity: formData.capacity,
+          shape: formData.shape,
+          x: formData.x + (i * 20),
+          y: formData.y + (i * 20),
+          guests: []
+        })
+      }
     }
     resetForm()
   }
 
   const resetForm = () => {
-    setFormData({ name: '', capacity: 8, shape: 'round', x: 100, y: 100 })
+    setFormData({ name: '', capacity: 8, shape: 'round', x: 100, y: 100, quantity: 1 })
     setShowAddTableModal(false)
     setEditingTable(null)
   }
@@ -52,7 +121,8 @@ export default function Seating() {
       capacity: table.capacity,
       shape: table.shape,
       x: table.x,
-      y: table.y
+      y: table.y,
+      quantity: 1
     })
     setShowAddTableModal(true)
   }
@@ -86,6 +156,7 @@ export default function Seating() {
     return guests.filter(g => g.tableAssignment === tableId)
   }
 
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -96,7 +167,7 @@ export default function Seating() {
           <div>
             <h1 className="text-2xl font-serif text-gray-800">Seating Chart</h1>
             <p className="text-gray-500">
-              {seatedCount} of {attendingGuests.length} guests seated across {tables.length} tables
+              {seatedCount} of {guestsToSeat.length} guests seated across {tables.length} tables
             </p>
           </div>
         </div>
@@ -257,7 +328,9 @@ export default function Seating() {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Table Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {editingTable || formData.quantity === 1 ? 'Table Name' : 'Base Table Name (e.g. "Table 1")'}
+                </label>
                 <input
                   type="text"
                   required
@@ -267,8 +340,25 @@ export default function Seating() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
+
+              {!editingTable && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    required
+                    className="input-field"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Creating multiple tables will auto-number them (e.g., Table 1, Table 2...)</p>
+                </div>
+              )}
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Capacity per Table</label>
                 <input
                   type="number"
                   min="1"
@@ -288,8 +378,8 @@ export default function Seating() {
                       type="button"
                       onClick={() => setFormData({ ...formData, shape: shape.value as typeof formData.shape })}
                       className={`p-3 rounded-lg border-2 flex flex-col items-center transition-colors ${formData.shape === shape.value
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300'
                         }`}
                     >
                       <span className="text-2xl">{shape.icon}</span>
@@ -301,7 +391,7 @@ export default function Seating() {
               <div className="flex gap-3 justify-end pt-4">
                 <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary">
-                  {editingTable ? 'Save Changes' : 'Add Table'}
+                  {editingTable ? 'Save Changes' : `Add ${formData.quantity > 1 ? formData.quantity + ' Tables' : 'Table'}`}
                 </button>
               </div>
             </form>
