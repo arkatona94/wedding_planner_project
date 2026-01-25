@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { differenceInDays, format } from 'date-fns'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
@@ -110,6 +111,39 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Quick Navigation Panel */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+        <Link to="/checklist" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
+          <span className="text-2xl mb-2">✓</span>
+          <span className="font-medium text-gray-700">Checklist</span>
+        </Link>
+        <Link to="/budget" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
+          <span className="text-2xl mb-2">💰</span>
+          <span className="font-medium text-gray-700">Budget</span>
+        </Link>
+        <div className="flex flex-col gap-2">
+          <Link to="/guests" className="btn-secondary flex-1 flex flex-col items-center justify-center p-2 hover:bg-primary-50 hover:border-primary-200 transition-colors">
+            <span className="text-xl">👥</span>
+            <span className="text-sm font-medium text-gray-700">Guests</span>
+          </Link>
+          <Link to="/seating" className="btn-secondary flex-1 flex flex-col items-center justify-center p-2 hover:bg-primary-50 hover:border-primary-200 transition-colors">
+            <span className="text-xl">🪑</span>
+            <span className="text-sm font-medium text-gray-700">Seating</span>
+          </Link>
+        </div>
+        <Link to="/timeline" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
+          <span className="text-2xl mb-2">📅</span>
+          <span className="font-medium text-gray-700">Timeline</span>
+        </Link>
+        <Link to="/photos" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
+          <span className="text-2xl mb-2">📸</span>
+          <span className="font-medium text-gray-700">Photos</span>
+        </Link>
+        <Link to="/website" className="btn-secondary h-full flex flex-col items-center justify-center p-4 hover:bg-primary-50 hover:border-primary-200 transition-colors">
+          <span className="text-2xl mb-2">🌐</span>
+          <span className="font-medium text-gray-700">Website</span>
+        </Link>
+      </div>
       <div className="card bg-gradient-to-r from-primary-50 to-wedding-blush">
         <div className="flex items-center justify-between">
           <div>

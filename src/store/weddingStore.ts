@@ -13,6 +13,21 @@ import type {
   WebsiteSettings
 } from '../types'
 
+const vendorCategoryMap: Record<string, string> = {
+  venue: 'Venue',
+  catering: 'Catering',
+  photography: 'Photography',
+  videography: 'Videography',
+  florist: 'Flowers',
+  music: 'Music/DJ',
+  officiant: 'Officiant',
+  cake: 'Cake',
+  rentals: 'Rentals',
+  transportation: 'Transportation',
+  'hair-makeup': 'Hair & Makeup',
+  other: 'Other'
+}
+
 interface WeddingState {
   // Wedding Details
   wedding: WeddingDetails
@@ -182,18 +197,63 @@ export const useWeddingStore = create<WeddingState>()(
       // Vendors
       vendors: [],
       addVendor: (vendor) =>
-        set((state) => ({
-          vendors: [...state.vendors, { ...vendor, id: uuidv4() }]
-        })),
+        set((state) => {
+          const newVendorId = uuidv4()
+          const newVendor = { ...vendor, id: newVendorId }
+
+          // Create corresponding budget item
+          const budgetCategory = vendorCategoryMap[vendor.category] || 'Other'
+          const newBudgetItem: BudgetItem = {
+            id: uuidv4(),
+            category: budgetCategory,
+            vendor: vendor.name,
+            vendorId: newVendorId,
+            estimatedCost: vendor.price || 0,
+            actualCost: vendor.contracted ? (vendor.price || 0) : 0,
+            paid: vendor.depositPaid ? (vendor.depositAmount || 0) : 0,
+            dueDate: '',
+            notes: `Generated from Vendor: ${vendor.name}`
+          }
+
+          return {
+            vendors: [...state.vendors, newVendor],
+            budgetItems: [...state.budgetItems, newBudgetItem]
+          }
+        }),
       updateVendor: (id, updates) =>
-        set((state) => ({
-          vendors: state.vendors.map((vendor) =>
+        set((state) => {
+          const updatedVendors = state.vendors.map((vendor) =>
             vendor.id === id ? { ...vendor, ...updates } : vendor
           )
-        })),
+          const updatedVendor = updatedVendors.find(v => v.id === id)
+
+          let updatedBudgetItems = state.budgetItems
+          if (updatedVendor) {
+            updatedBudgetItems = state.budgetItems.map(item => {
+              if (item.vendorId === id) {
+                const budgetCategory = vendorCategoryMap[updatedVendor.category] || 'Other'
+                return {
+                  ...item,
+                  category: budgetCategory,
+                  vendor: updatedVendor.name,
+                  estimatedCost: updatedVendor.price || 0,
+                  actualCost: updatedVendor.contracted ? (updatedVendor.price || 0) : 0,
+                  paid: updatedVendor.depositPaid ? (updatedVendor.depositAmount || 0) : 0
+                }
+              }
+              return item
+            })
+          }
+
+          return {
+            vendors: updatedVendors,
+            budgetItems: updatedBudgetItems
+          }
+        }),
       deleteVendor: (id) =>
         set((state) => ({
-          vendors: state.vendors.filter((vendor) => vendor.id !== id)
+          vendors: state.vendors.filter((vendor) => vendor.id !== id),
+          budgetItems: state.budgetItems.filter(item => item.vendorId !== id)
         })),
 
       // Seating

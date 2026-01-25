@@ -39,6 +39,7 @@ export interface BudgetItem {
   id: string
   category: string
   vendor: string
+  vendorId?: string
   estimatedCost: number
   actualCost: number
   paid: number

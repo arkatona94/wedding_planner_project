@@ -3,11 +3,59 @@ import { useWeddingStore } from '../store/weddingStore'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import type { BudgetItem } from '../types'
 
+import venuesData from '../data/venues.json'
+import photographyData from '../data/photography.json'
+import cateringData from '../data/catering.json'
+import videographyData from '../data/videography.json'
+import floristData from '../data/florist.json'
+import musicData from '../data/music.json'
+import officiantData from '../data/officiant.json'
+import cakeData from '../data/cake.json'
+import rentalsData from '../data/rentals.json'
+import transportationData from '../data/transportation.json'
+import hairMakeupData from '../data/hair_makeup.json'
+
 const budgetCategories = [
   'Venue', 'Catering', 'Photography', 'Videography', 'Music/DJ',
   'Flowers', 'Attire', 'Cake', 'Invitations', 'Transportation',
   'Hair & Makeup', 'Decor', 'Favors', 'Officiant', 'Other'
 ]
+
+const categoryToVendorKey: Record<string, string> = {
+  'Venue': 'venue',
+  'Catering': 'catering',
+  'Photography': 'photography',
+  'Videography': 'videography',
+  'Music/DJ': 'music',
+  'Flowers': 'florist',
+  'Cake': 'cake',
+  'Transportation': 'transportation',
+  'Hair & Makeup': 'hair-makeup',
+  'Decor': 'rentals',
+  'Officiant': 'officiant'
+}
+
+const vendorDataMap: Record<string, any> = {
+  venue: venuesData,
+  photography: photographyData,
+  catering: cateringData,
+  videography: videographyData,
+  florist: floristData,
+  music: musicData,
+  officiant: officiantData,
+  cake: cakeData,
+  rentals: rentalsData,
+  transportation: transportationData,
+  'hair-makeup': hairMakeupData
+}
+
+const getVendorList = (budgetCategory: string) => {
+  const vendorKey = categoryToVendorKey[budgetCategory]
+  if (!vendorKey) return []
+  const data = vendorDataMap[vendorKey]
+  if (!data) return []
+  return data.results || data.all_venues || []
+}
 
 const categoryColors: Record<string, string> = {
   'Venue': '#c97f66', 'Catering': '#9dc183', 'Photography': '#f7e7ce',
@@ -261,12 +309,56 @@ export default function Budget() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
-                  <input
-                    type="text"
-                    className="input-field"
-                    value={formData.vendor}
-                    onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                  />
+                  {getVendorList(formData.category).length > 0 ? (
+                    <div className="space-y-2">
+                      <select
+                        className="input-field"
+                        onChange={(e) => {
+                          const list = getVendorList(formData.category)
+                          const selectedVendor = list.find((v: any) => v.name === e.target.value)
+
+                          if (selectedVendor) {
+                            setFormData({
+                              ...formData,
+                              vendor: selectedVendor.name,
+                              estimatedCost: (selectedVendor.price_range?.length || 0) * 1000,
+                              notes: formData.notes || selectedVendor.website || ''
+                            })
+                          } else {
+                            // Custom selection or clear
+                            if (e.target.value === 'custom') {
+                              setFormData({ ...formData, vendor: '' })
+                            }
+                          }
+                        }}
+                        value={getVendorList(formData.category).some((v: any) => v.name === formData.vendor) ? formData.vendor : 'custom'}
+                      >
+                        <option value="custom">Select a vendor...</option>
+                        {getVendorList(formData.category).map((vendor: any, index: number) => (
+                          <option key={index} value={vendor.name}>
+                            {vendor.name} ({vendor.city}) - Est. ${(selectedVendor => (selectedVendor.price_range?.length || 0) * 1000)(vendor)}
+                          </option>
+                        ))}
+                        <option value="custom">Enter Custom Name...</option>
+                      </select>
+                      {(!getVendorList(formData.category).some((v: any) => v.name === formData.vendor)) && (
+                        <input
+                          type="text"
+                          placeholder="Enter vendor name"
+                          className="input-field"
+                          value={formData.vendor}
+                          onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={formData.vendor}
+                      onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                    />
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
