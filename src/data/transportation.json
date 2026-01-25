@@ -1,0 +1,27 @@
+{
+  "category": "transportation",
+  "updated_at": "2026-01-25T14:29:33.774311",
+  "count": 1,
+  "results": [
+    {
+      "name": "A Savannah Nite Limousine",
+      "category": "transportation",
+      "address": "West Chester",
+      "city": "West Chester",
+      "state": "OH",
+      "zip_code": "45069",
+      "phone": "(513) 858-2677",
+      "website": "",
+      "price_range": "$$",
+      "rating": 4.3,
+      "reviews_count": 60,
+      "tags": [
+        "Limos",
+        "Buses"
+      ],
+      "source": "Local",
+      "distance_miles": 8.0,
+      "notes": ""
+    }
+  ]
+}

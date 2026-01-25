@@ -1,0 +1,27 @@
+{
+  "category": "florist",
+  "updated_at": "2026-01-25T14:29:06.819594",
+  "count": 1,
+  "results": [
+    {
+      "name": "Oberer's Flowers",
+      "category": "florist",
+      "address": "West Chester",
+      "city": "West Chester",
+      "state": "OH",
+      "zip_code": "45069",
+      "phone": "(513) 777-1211",
+      "website": "https://oberers.com",
+      "price_range": "$$",
+      "rating": 4.6,
+      "reviews_count": 300,
+      "tags": [
+        "Fresh",
+        "Centerpieces"
+      ],
+      "source": "Local",
+      "distance_miles": 8.0,
+      "notes": ""
+    }
+  ]
+}

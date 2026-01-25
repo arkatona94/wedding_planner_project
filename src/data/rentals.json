@@ -1,0 +1,28 @@
+{
+  "category": "rentals",
+  "updated_at": "2026-01-25T14:29:32.629251",
+  "count": 1,
+  "results": [
+    {
+      "name": "Prime Time Party Rental",
+      "category": "rentals",
+      "address": "Dayton",
+      "city": "Dayton/Cincy",
+      "state": "OH",
+      "zip_code": "45458",
+      "phone": "(937) 296-9262",
+      "website": "https://primetimepartyrental.com",
+      "price_range": "$$",
+      "rating": 4.5,
+      "reviews_count": 50,
+      "tags": [
+        "Tents",
+        "Linens",
+        "Decor"
+      ],
+      "source": "Local",
+      "distance_miles": 25.0,
+      "notes": ""
+    }
+  ]
+}

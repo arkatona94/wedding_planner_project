@@ -1,0 +1,47 @@
+{
+  "category": "catering",
+  "updated_at": "2026-01-25T14:29:04.648478",
+  "count": 2,
+  "results": [
+    {
+      "name": "Vonderhaar's Catering",
+      "category": "catering",
+      "address": "19 W Pleasant St",
+      "city": "Reading",
+      "state": "OH",
+      "zip_code": "45215",
+      "phone": "(513) 554-1969",
+      "website": "https://vonderhaars.com",
+      "price_range": "$$",
+      "rating": 4.8,
+      "reviews_count": 120,
+      "tags": [
+        "Buffet",
+        "Plated"
+      ],
+      "source": "Local",
+      "distance_miles": 12.0,
+      "notes": ""
+    },
+    {
+      "name": "Funky's Catering Events",
+      "category": "catering",
+      "address": "1761 Tennessee Ave",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45229",
+      "phone": "(513) 841-9999",
+      "website": "https://funkyscatering.com",
+      "price_range": "$$$$",
+      "rating": 4.9,
+      "reviews_count": 90,
+      "tags": [
+        "Luxury",
+        "Full Service"
+      ],
+      "source": "Local",
+      "distance_miles": 20.0,
+      "notes": ""
+    }
+  ]
+}

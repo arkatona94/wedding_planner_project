@@ -1,0 +1,27 @@
+{
+  "category": "cake",
+  "updated_at": "2026-01-25T14:29:31.398332",
+  "count": 1,
+  "results": [
+    {
+      "name": "A Spoon Fulla Sugar",
+      "category": "cake",
+      "address": "11916 Montgomery Rd",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45249",
+      "phone": "(513) 683-0444",
+      "website": "",
+      "price_range": "$$",
+      "rating": 4.8,
+      "reviews_count": 85,
+      "tags": [
+        "Custom Cakes",
+        "Dessert Bar"
+      ],
+      "source": "Local",
+      "distance_miles": 16.0,
+      "notes": ""
+    }
+  ]
+}

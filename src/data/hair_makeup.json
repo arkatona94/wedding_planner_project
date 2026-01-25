@@ -1,0 +1,47 @@
+{
+  "category": "hair-makeup",
+  "updated_at": "2026-01-25T14:29:34.863884",
+  "count": 2,
+  "results": [
+    {
+      "name": "Brideface",
+      "category": "hair-makeup",
+      "address": "Cincinnati",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45202",
+      "phone": "",
+      "website": "https://brideface.com",
+      "price_range": "$$$",
+      "rating": 4.9,
+      "reviews_count": 180,
+      "tags": [
+        "Makeup Only",
+        "Airbrush"
+      ],
+      "source": "Local",
+      "distance_miles": 20.0,
+      "notes": ""
+    },
+    {
+      "name": "REFeyeANCE Makeup & Hair",
+      "category": "hair-makeup",
+      "address": "Traveling",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45202",
+      "phone": "",
+      "website": "",
+      "price_range": "$$",
+      "rating": 4.8,
+      "reviews_count": 300,
+      "tags": [
+        "Hair & Makeup",
+        "Large Teams"
+      ],
+      "source": "Local",
+      "distance_miles": 20.0,
+      "notes": ""
+    }
+  ]
+}

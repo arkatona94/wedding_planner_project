@@ -1,0 +1,28 @@
+{
+  "category": "music",
+  "updated_at": "2026-01-25T14:29:07.927167",
+  "count": 1,
+  "results": [
+    {
+      "name": "Party Pleasers Services",
+      "category": "music",
+      "address": "Hamilton",
+      "city": "Hamilton",
+      "state": "OH",
+      "zip_code": "45011",
+      "phone": "(513) 336-6935",
+      "website": "https://partypleasersservices.com",
+      "price_range": "$$",
+      "rating": 4.9,
+      "reviews_count": 400,
+      "tags": [
+        "DJ",
+        "Lighting",
+        "Photo Booth"
+      ],
+      "source": "Local",
+      "distance_miles": 2.0,
+      "notes": ""
+    }
+  ]
+}

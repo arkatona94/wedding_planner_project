@@ -1,6 +1,39 @@
 import { useState } from 'react'
 import { useWeddingStore } from '../store/weddingStore'
 import type { Vendor, VendorCategory } from '../types'
+import venuesData from '../data/venues.json'
+import photographyData from '../data/photography.json'
+import cateringData from '../data/catering.json'
+import videographyData from '../data/videography.json'
+import floristData from '../data/florist.json'
+import musicData from '../data/music.json'
+import officiantData from '../data/officiant.json'
+import cakeData from '../data/cake.json'
+import rentalsData from '../data/rentals.json'
+import transportationData from '../data/transportation.json'
+import hairMakeupData from '../data/hair_makeup.json'
+
+// Map categories to their data sources
+const vendorDataMap: Partial<Record<VendorCategory, any>> = {
+  venue: venuesData,
+  photography: photographyData,
+  catering: cateringData,
+  videography: videographyData,
+  florist: floristData,
+  music: musicData,
+  officiant: officiantData,
+  cake: cakeData,
+  rentals: rentalsData,
+  transportation: transportationData,
+  'hair-makeup': hairMakeupData
+}
+
+const getVendorList = (category: VendorCategory) => {
+  const data = vendorDataMap[category]
+  if (!data) return []
+  // Handle inconsistent structure: venues.json uses 'all_venues', others use 'results'
+  return data.results || data.all_venues || []
+}
 
 const vendorCategories: { value: VendorCategory; label: string }[] = [
   { value: 'venue', label: 'Venue' },
@@ -41,7 +74,7 @@ export default function Vendors() {
   const filteredVendors = vendors.filter(vendor => {
     const matchesCategory = categoryFilter === 'all' || vendor.category === categoryFilter
     const matchesSearch = vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vendor.contactName.toLowerCase().includes(searchTerm.toLowerCase())
+      vendor.contactName.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesCategory && matchesSearch
   })
 
@@ -202,8 +235,62 @@ export default function Vendors() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name</label>
-                  <input type="text" required className="input-field" value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                  {getVendorList(formData.category).length > 0 ? (
+                    <div className="space-y-2">
+                      <select
+                        className="input-field"
+                        onChange={(e) => {
+                          const list = getVendorList(formData.category)
+                          const selectedVendor = list.find((v: any) => v.name === e.target.value)
+
+                          if (selectedVendor) {
+                            // Construct notes based on available fields
+                            let notes = ''
+                            if (selectedVendor.capacity) notes += `Capacity: ${selectedVendor.capacity} guests\n`
+                            if (selectedVendor.address) notes += `Address: ${selectedVendor.address}, ${selectedVendor.city}, ${selectedVendor.state || 'OH'} ${selectedVendor.zip_code || ''}\n`
+                            if (selectedVendor.amenities) notes += `Amenities: ${selectedVendor.amenities.join(', ')}\n`
+                            if (selectedVendor.tags) notes += `Tags: ${selectedVendor.tags.join(', ')}`
+
+                            setFormData({
+                              ...formData,
+                              name: selectedVendor.name,
+                              contactName: '',
+                              phone: selectedVendor.phone || '',
+                              email: '',
+                              website: selectedVendor.website || '',
+                              price: (selectedVendor.price_range?.length || 0) * 1000,
+                              rating: selectedVendor.rating || 5,
+                              notes: notes.trim()
+                            })
+                          } else {
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                        }}
+                        value={getVendorList(formData.category).some((v: any) => v.name === formData.name) ? formData.name : ''}
+                      >
+                        <option value="">Select a {vendorCategories.find(c => c.value === formData.category)?.label}...</option>
+                        {getVendorList(formData.category).map((vendor: any, index: number) => (
+                          <option key={index} value={vendor.name}>
+                            {vendor.name} ({vendor.city})
+                          </option>
+                        ))}
+                        <option value="custom">Enter Custom Name...</option>
+                      </select>
+                      {(!getVendorList(formData.category).some((v: any) => v.name === formData.name)) && (
+                        <input
+                          type="text"
+                          placeholder="Enter vendor name"
+                          required
+                          className="input-field"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <input type="text" required className="input-field" value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>

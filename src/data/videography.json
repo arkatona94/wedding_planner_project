@@ -1,0 +1,27 @@
+{
+  "category": "videography",
+  "updated_at": "2026-01-25T14:29:05.758769",
+  "count": 1,
+  "results": [
+    {
+      "name": "Lifetime Films",
+      "category": "videography",
+      "address": "",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45202",
+      "phone": "(513) 222-3333",
+      "website": "",
+      "price_range": "$$$",
+      "rating": 4.8,
+      "reviews_count": 40,
+      "tags": [
+        "Cinematic",
+        "Drone"
+      ],
+      "source": "Local",
+      "distance_miles": 15.0,
+      "notes": ""
+    }
+  ]
+}
