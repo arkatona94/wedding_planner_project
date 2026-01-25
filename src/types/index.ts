@@ -86,6 +86,8 @@ export interface Vendor {
   notes: string
   contracted: boolean
   depositPaid: boolean
+  depositAmount?: number
+  tags?: string[]
 }
 
 export type VendorCategory =

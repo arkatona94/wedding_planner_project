@@ -48,8 +48,6 @@ def scrape_weddingwire_base(zip_code: str, category_slug: str, category_name: st
     """Base scraper for WeddingWire."""
     results = []
     base_url = "https://www.weddingwire.com"
-    # Note: URL structure varies by region, defaulting to general search or specific OH area for this project context
-    # ideally we map zip to region slug, but for now we'll force a common OH search for demonstration
     search_url = f"{base_url}/{category_slug}/ohio/hamilton--oh"
 
     headers = {
@@ -70,18 +68,37 @@ def scrape_weddingwire_base(zip_code: str, category_slug: str, category_name: st
                     if not name_elem: continue
                     name = name_elem.get_text(strip=True)
                     
-                    # Try extract rating
+                    # Extract Rating
                     rating = 0.0
-                    reviews = 0
                     rating_elem = card.find(class_=re.compile(r'rating'))
                     if rating_elem:
                         txt = rating_elem.get_text()
                         match = re.search(r'(\d+\.?\d*)', txt)
                         if match: rating = float(match.group(1))
                     
+                    # Extract Tags/Highlights
+                    tags = []
+                    
+                    # 1. Look for price range
+                    price_elem = card.find(class_=re.compile(r'price-range|cost'))
+                    if price_elem: tags.append(price_elem.get_text(strip=True))
+                    
+                    # 2. Look for capacity/guest count
+                    capacity_elem = card.find(text=re.compile(r'Guests|Capacity'))
+                    if capacity_elem:
+                        tags.append(capacity_elem.strip())
+
+                    # 3. Look for styles/types (often in badges or subtitles)
+                    badges = card.find_all(class_=re.compile(r'badge|pill|sub-title'))
+                    for b in badges:
+                        t = b.get_text(strip=True)
+                        if t and len(t) < 30 and t not in tags:
+                            tags.append(t)
+                            
                     results.append({
                         'name': name,
                         'rating': rating,
+                        'tags': tags,
                         'source': 'WeddingWire'
                     })
                 except: continue
@@ -93,7 +110,6 @@ def scrape_weddingwire_base(zip_code: str, category_slug: str, category_name: st
 def scrape_theknot_base(zip_code: str, category_slug: str, category_name: str) -> List[Dict]:
     """Base scraper for The Knot."""
     results = []
-    # Similar to WW, hardcoding region for the demo context (Hamilton, OH)
     search_url = f"https://www.theknot.com/marketplace/{category_slug}-hamilton-oh"
     
     headers = {
@@ -115,23 +131,39 @@ def scrape_theknot_base(zip_code: str, category_slug: str, category_name: str) -
                     if len(name) < 3: continue
                     
                     rating = 0.0
-                    # Try to find rating (common patterns on The Knot)
                     try:
-                        # Look for numeric rating text (e.g. "4.9")
                         rating_elem = card.find(class_=re.compile(r'rating|score|stars', re.I))
                         if rating_elem:
                             txt = rating_elem.get_text()
                             match = re.search(r'(\d+\.?\d*)', txt)
                             if match:
                                 val = float(match.group(1))
-                                if 0 <= val <= 5: 
-                                    rating = val
-                    except:
-                        pass
+                                if 0 <= val <= 5: rating = val
+                    except: pass
+
+                    # Extract Tags
+                    tags = []
+                    # The Knot often puts category/style info in a paragraph or small text block below the name
+                    info_elems = card.find_all(['div', 'span', 'p'], class_=re.compile(r'subtitle|category|detail|accent'))
+                    for elem in info_elems:
+                        text = elem.get_text(strip=True)
+                        # Filter for relevant short descriptors
+                        if 3 < len(text) < 40 and '$' not in text:
+                            # Split by common delimiters
+                            parts = re.split(r'[,|•]', text)
+                            for p in parts:
+                                clean_p = p.strip()
+                                if clean_p and clean_p not in tags and not clean_p.isdigit():
+                                    tags.append(clean_p)
+                                    
+                    # Look for Price
+                    price_elem = card.find(text=re.compile(r'\$\$'))
+                    if price_elem: tags.append(price_elem.strip())
 
                     results.append({
                         'name': name,
                         'rating': rating,
+                        'tags': tags,
                         'source': 'The Knot'
                     })
                 except: continue
@@ -176,7 +208,7 @@ def standardized_search(
             price_range="Unknown",
             rating=res.get('rating', 0.0),
             reviews_count=0,
-            tags=[],
+            tags=res.get('tags', []),
             source="WeddingWire",
             distance_miles=0.0
         )
@@ -196,7 +228,7 @@ def standardized_search(
             price_range="Unknown",
             rating=res.get('rating', 0.0),
             reviews_count=0,
-            tags=[],
+            tags=res.get('tags', []),
             source="The Knot",
             distance_miles=0.0
         )
