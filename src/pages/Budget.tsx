@@ -1,0 +1,329 @@
+import { useState } from 'react'
+import { useWeddingStore } from '../store/weddingStore'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import type { BudgetItem } from '../types'
+
+const budgetCategories = [
+  'Venue', 'Catering', 'Photography', 'Videography', 'Music/DJ',
+  'Flowers', 'Attire', 'Cake', 'Invitations', 'Transportation',
+  'Hair & Makeup', 'Decor', 'Favors', 'Officiant', 'Other'
+]
+
+const categoryColors: Record<string, string> = {
+  'Venue': '#c97f66', 'Catering': '#9dc183', 'Photography': '#f7e7ce',
+  'Videography': '#d4a5a5', 'Music/DJ': '#d4af37', 'Flowers': '#f8e1e4',
+  'Attire': '#b5644d', 'Cake': '#e9bfb0', 'Invitations': '#97503e',
+  'Transportation': '#7d4336', 'Hair & Makeup': '#dba08b', 'Decor': '#f3d9d0',
+  'Favors': '#683a30', 'Officiant': '#f9ede8', 'Other': '#999'
+}
+
+export default function Budget() {
+  const { wedding, budgetItems, addBudgetItem, updateBudgetItem, deleteBudgetItem, setWedding } = useWeddingStore()
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingItem, setEditingItem] = useState<BudgetItem | null>(null)
+
+  const [formData, setFormData] = useState({
+    category: 'Venue',
+    vendor: '',
+    estimatedCost: 0,
+    actualCost: 0,
+    paid: 0,
+    dueDate: '',
+    notes: ''
+  })
+
+  const totalBudget = wedding.totalBudget
+  const totalEstimated = budgetItems.reduce((sum, item) => sum + item.estimatedCost, 0)
+  const totalActual = budgetItems.reduce((sum, item) => sum + item.actualCost, 0)
+  const totalPaid = budgetItems.reduce((sum, item) => sum + item.paid, 0)
+  const remaining = totalBudget - totalActual
+  const unpaid = totalActual - totalPaid
+
+  const budgetByCategory = budgetCategories.map(category => {
+    const items = budgetItems.filter(item => item.category === category)
+    const total = items.reduce((sum, item) => sum + item.actualCost, 0)
+    return { name: category, value: total, color: categoryColors[category] }
+  }).filter(item => item.value > 0)
+
+  const isOverBudget = totalActual > totalBudget
+  const budgetWarning = totalActual > totalBudget * 0.9
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (editingItem) {
+      updateBudgetItem(editingItem.id, formData)
+    } else {
+      addBudgetItem(formData)
+    }
+    resetForm()
+  }
+
+  const resetForm = () => {
+    setFormData({
+      category: 'Venue',
+      vendor: '',
+      estimatedCost: 0,
+      actualCost: 0,
+      paid: 0,
+      dueDate: '',
+      notes: ''
+    })
+    setShowAddModal(false)
+    setEditingItem(null)
+  }
+
+  const startEdit = (item: BudgetItem) => {
+    setEditingItem(item)
+    setFormData({
+      category: item.category,
+      vendor: item.vendor,
+      estimatedCost: item.estimatedCost,
+      actualCost: item.actualCost,
+      paid: item.paid,
+      dueDate: item.dueDate,
+      notes: item.notes
+    })
+    setShowAddModal(true)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-serif text-gray-800">Budget Tracker</h1>
+          <p className="text-gray-500">Track your wedding expenses</p>
+        </div>
+        <button onClick={() => setShowAddModal(true)} className="btn-primary">+ Add Expense</button>
+      </div>
+
+      {/* Budget Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="card">
+          <p className="text-sm text-gray-500">Total Budget</p>
+          <p className="text-2xl font-serif text-gray-800">${totalBudget.toLocaleString()}</p>
+          <input
+            type="number"
+            className="input-field mt-2 text-sm"
+            value={totalBudget}
+            onChange={(e) => setWedding({ totalBudget: Number(e.target.value) })}
+          />
+        </div>
+        <div className="card">
+          <p className="text-sm text-gray-500">Estimated</p>
+          <p className="text-2xl font-serif text-gray-800">${totalEstimated.toLocaleString()}</p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-gray-500">Actual Spent</p>
+          <p className={`text-2xl font-serif ${isOverBudget ? 'text-red-600' : 'text-gray-800'}`}>
+            ${totalActual.toLocaleString()}
+          </p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-gray-500">Paid</p>
+          <p className="text-2xl font-serif text-green-600">${totalPaid.toLocaleString()}</p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-gray-500">Remaining</p>
+          <p className={`text-2xl font-serif ${remaining < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+            ${remaining.toLocaleString()}
+          </p>
+        </div>
+      </div>
+
+      {/* Budget Warning */}
+      {budgetWarning && (
+        <div className={`p-4 rounded-lg ${isOverBudget ? 'bg-red-50 text-red-800' : 'bg-yellow-50 text-yellow-800'}`}>
+          <p className="font-medium">
+            {isOverBudget
+              ? `You're over budget by $${Math.abs(remaining).toLocaleString()}!`
+              : `Warning: You've used ${Math.round((totalActual / totalBudget) * 100)}% of your budget.`}
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Pie Chart */}
+        <div className="card">
+          <h3 className="text-lg font-medium text-gray-800 mb-4">Spending by Category</h3>
+          {budgetByCategory.length > 0 ? (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={budgetByCategory}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {budgetByCategory.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">Add expenses to see breakdown</p>
+          )}
+        </div>
+
+        {/* Payment Status */}
+        <div className="card">
+          <h3 className="text-lg font-medium text-gray-800 mb-4">Payment Status</h3>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-600">Paid</span>
+                <span className="text-green-600">${totalPaid.toLocaleString()}</span>
+              </div>
+              <div className="progress-bar">
+                <div className="progress-bar-fill bg-green-500" style={{ width: `${totalActual > 0 ? (totalPaid / totalActual) * 100 : 0}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-600">Unpaid</span>
+                <span className="text-orange-600">${unpaid.toLocaleString()}</span>
+              </div>
+              <div className="progress-bar">
+                <div className="progress-bar-fill bg-orange-500" style={{ width: `${totalActual > 0 ? (unpaid / totalActual) * 100 : 0}%` }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Budget Items Table */}
+      <div className="card overflow-hidden">
+        <h3 className="text-lg font-medium text-gray-800 mb-4">All Expenses</h3>
+        {budgetItems.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">No expenses added yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Category</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Vendor</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Estimated</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Actual</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Paid</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {budgetItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: categoryColors[item.category] || '#999' }} />
+                        {item.category}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{item.vendor || '-'}</td>
+                    <td className="px-4 py-3 text-right">${item.estimatedCost.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right">${item.actualCost.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right text-green-600">${item.paid.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => startEdit(item)} className="text-primary-600 hover:underline mr-3">Edit</button>
+                      <button onClick={() => deleteBudgetItem(item.id)} className="text-red-600 hover:underline">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Add/Edit Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
+            <h2 className="text-xl font-serif text-gray-800 mb-4">{editingItem ? 'Edit Expense' : 'Add Expense'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select
+                    className="input-field"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  >
+                    {budgetCategories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={formData.vendor}
+                    onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estimated ($)</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={formData.estimatedCost || ''}
+                    onChange={(e) => setFormData({ ...formData, estimatedCost: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Actual ($)</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={formData.actualCost || ''}
+                    onChange={(e) => setFormData({ ...formData, actualCost: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Paid ($)</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={formData.paid || ''}
+                    onChange={(e) => setFormData({ ...formData, paid: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                <input
+                  type="date"
+                  className="input-field"
+                  value={formData.dueDate}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  className="input-field"
+                  rows={2}
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-3 justify-end pt-4">
+                <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>
+                <button type="submit" className="btn-primary">{editingItem ? 'Save Changes' : 'Add Expense'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

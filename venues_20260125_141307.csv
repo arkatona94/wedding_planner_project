@@ -1,0 +1,13 @@
+name,address,city,state,zip_code,capacity,capacity_category,phone,website,price_range,venue_type,rating,reviews_count,amenities,source,distance_miles
+The Barn at Edgin Farms,1234 Edgin Road,Hamilton,OH,45011,200,large,(513) 555-0101,https://example.com,$$,Barn/Farm,4.8,45,Outdoor Ceremony; Catering Kitchen; Parking,Local Directory,5.2
+Pyramid Hill Sculpture Park,1763 Hamilton Cleves Road,Hamilton,OH,45013,300,grand,(513) 868-8336,https://pyramidhill.org,$$$,Garden/Outdoor,4.9,120,Outdoor Ceremony; Scenic Views; Art Installations,Local Directory,3.5
+The Savannah Center,2190 Holt Road,West Chester,OH,45069,500,grand,(513) 777-1222,https://thesavannahcenter.com,$$$$,Banquet Hall,4.7,200,Full Service; Multiple Rooms; Catering,Local Directory,12.0
+The Phoenix,812 Race Street,Cincinnati,OH,45202,400,grand,(513) 721-8901,https://thephoenixcincy.com,$$$$,Historic/Ballroom,4.9,350,Historic Building; Downtown; Full Service,Local Directory,22.0
+Pinecroft at Crosley Estate,2267 Werk Road,Cincinnati,OH,45211,250,large,(513) 251-3366,https://pinecroftatestate.com,$$$,Estate/Mansion,4.8,180,Historic Estate; Gardens; Indoor/Outdoor,Local Directory,18.5
+Pattison Lodge,5225 Kyles Station Road,Liberty Township,OH,45044,150,medium,(513) 867-5835,https://butlercountymetroparks.org,$,Park/Lodge,4.5,65,Rustic; Park Setting; Affordable,Local Directory,8.0
+Receptions Banquet & Conference,5765 Cheviot Road,Cincinnati,OH,45247,350,grand,(513) 741-3500,https://receptionsinc.com,$$,Banquet Hall,4.6,90,Multiple Rooms; Catering; Parking,Local Directory,15.0
+Oasis Golf Club & Conference Center,902 Loveland Miamiville Road,Loveland,OH,45140,200,large,(513) 677-9000,https://oasisconferencecenter.com,$$,Golf Club,4.4,75,Golf Course Views; Outdoor Patio; Full Service,Local Directory,25.0
+The Transept,1205 Elm Street,Cincinnati,OH,45202,300,grand,(513) 818-3564,https://thetransept.com,$$$$,Historic Church,4.9,220,Historic Architecture; Downtown; Unique,Local Directory,22.0
+Niederman Family Farm,5110 Lesourdsville Road,Liberty Township,OH,45044,175,medium,(513) 738-9769,https://niedermanfamilyfarm.com,$$,Barn/Farm,4.7,95,Rustic Barn; Farm Setting; Outdoor Options,Local Directory,10.0
+French Park,3012 Section Road,Cincinnati,OH,45237,100,medium,(513) 531-5676,https://frenchparkcincinnati.com,$$,Garden/Outdoor,4.6,55,Garden Setting; Historic Home; Intimate,Local Directory,20.0
+The Monastery Event Center,1850 St. Gregory Street,Cincinnati,OH,45202,200,large,(513) 421-9900,https://monasteryevents.com,$$$,Historic/Religious,4.8,140,Historic Monastery; Gardens; Unique Architecture,Local Directory,21.0

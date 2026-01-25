@@ -1,1 +1,44 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+*.local
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Temporary
+.tmp/
+tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Credentials
+credentials.json
+token.json

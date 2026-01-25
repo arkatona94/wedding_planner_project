@@ -1,0 +1,548 @@
+{
+  "search_params": {
+    "zip_code": "45011",
+    "radius_miles": 50,
+    "min_capacity": 50,
+    "search_date": "2026-01-25T14:13:07.932242"
+  },
+  "total_venues": 12,
+  "venues_by_category": {
+    "intimate": [],
+    "medium": [
+      {
+        "name": "French Park",
+        "address": "3012 Section Road",
+        "city": "Cincinnati",
+        "state": "OH",
+        "zip_code": "45237",
+        "capacity": 100,
+        "capacity_category": "medium",
+        "phone": "(513) 531-5676",
+        "website": "https://frenchparkcincinnati.com",
+        "price_range": "$$",
+        "venue_type": "Garden/Outdoor",
+        "rating": 4.6,
+        "reviews_count": 55,
+        "amenities": [
+          "Garden Setting",
+          "Historic Home",
+          "Intimate"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 20.0
+      },
+      {
+        "name": "Pattison Lodge",
+        "address": "5225 Kyles Station Road",
+        "city": "Liberty Township",
+        "state": "OH",
+        "zip_code": "45044",
+        "capacity": 150,
+        "capacity_category": "medium",
+        "phone": "(513) 867-5835",
+        "website": "https://butlercountymetroparks.org",
+        "price_range": "$",
+        "venue_type": "Park/Lodge",
+        "rating": 4.5,
+        "reviews_count": 65,
+        "amenities": [
+          "Rustic",
+          "Park Setting",
+          "Affordable"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 8.0
+      },
+      {
+        "name": "Niederman Family Farm",
+        "address": "5110 Lesourdsville Road",
+        "city": "Liberty Township",
+        "state": "OH",
+        "zip_code": "45044",
+        "capacity": 175,
+        "capacity_category": "medium",
+        "phone": "(513) 738-9769",
+        "website": "https://niedermanfamilyfarm.com",
+        "price_range": "$$",
+        "venue_type": "Barn/Farm",
+        "rating": 4.7,
+        "reviews_count": 95,
+        "amenities": [
+          "Rustic Barn",
+          "Farm Setting",
+          "Outdoor Options"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 10.0
+      }
+    ],
+    "large": [
+      {
+        "name": "The Barn at Edgin Farms",
+        "address": "1234 Edgin Road",
+        "city": "Hamilton",
+        "state": "OH",
+        "zip_code": "45011",
+        "capacity": 200,
+        "capacity_category": "large",
+        "phone": "(513) 555-0101",
+        "website": "https://example.com",
+        "price_range": "$$",
+        "venue_type": "Barn/Farm",
+        "rating": 4.8,
+        "reviews_count": 45,
+        "amenities": [
+          "Outdoor Ceremony",
+          "Catering Kitchen",
+          "Parking"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 5.2
+      },
+      {
+        "name": "Oasis Golf Club & Conference Center",
+        "address": "902 Loveland Miamiville Road",
+        "city": "Loveland",
+        "state": "OH",
+        "zip_code": "45140",
+        "capacity": 200,
+        "capacity_category": "large",
+        "phone": "(513) 677-9000",
+        "website": "https://oasisconferencecenter.com",
+        "price_range": "$$",
+        "venue_type": "Golf Club",
+        "rating": 4.4,
+        "reviews_count": 75,
+        "amenities": [
+          "Golf Course Views",
+          "Outdoor Patio",
+          "Full Service"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 25.0
+      },
+      {
+        "name": "The Monastery Event Center",
+        "address": "1850 St. Gregory Street",
+        "city": "Cincinnati",
+        "state": "OH",
+        "zip_code": "45202",
+        "capacity": 200,
+        "capacity_category": "large",
+        "phone": "(513) 421-9900",
+        "website": "https://monasteryevents.com",
+        "price_range": "$$$",
+        "venue_type": "Historic/Religious",
+        "rating": 4.8,
+        "reviews_count": 140,
+        "amenities": [
+          "Historic Monastery",
+          "Gardens",
+          "Unique Architecture"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 21.0
+      },
+      {
+        "name": "Pinecroft at Crosley Estate",
+        "address": "2267 Werk Road",
+        "city": "Cincinnati",
+        "state": "OH",
+        "zip_code": "45211",
+        "capacity": 250,
+        "capacity_category": "large",
+        "phone": "(513) 251-3366",
+        "website": "https://pinecroftatestate.com",
+        "price_range": "$$$",
+        "venue_type": "Estate/Mansion",
+        "rating": 4.8,
+        "reviews_count": 180,
+        "amenities": [
+          "Historic Estate",
+          "Gardens",
+          "Indoor/Outdoor"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 18.5
+      }
+    ],
+    "grand": [
+      {
+        "name": "Pyramid Hill Sculpture Park",
+        "address": "1763 Hamilton Cleves Road",
+        "city": "Hamilton",
+        "state": "OH",
+        "zip_code": "45013",
+        "capacity": 300,
+        "capacity_category": "grand",
+        "phone": "(513) 868-8336",
+        "website": "https://pyramidhill.org",
+        "price_range": "$$$",
+        "venue_type": "Garden/Outdoor",
+        "rating": 4.9,
+        "reviews_count": 120,
+        "amenities": [
+          "Outdoor Ceremony",
+          "Scenic Views",
+          "Art Installations"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 3.5
+      },
+      {
+        "name": "The Transept",
+        "address": "1205 Elm Street",
+        "city": "Cincinnati",
+        "state": "OH",
+        "zip_code": "45202",
+        "capacity": 300,
+        "capacity_category": "grand",
+        "phone": "(513) 818-3564",
+        "website": "https://thetransept.com",
+        "price_range": "$$$$",
+        "venue_type": "Historic Church",
+        "rating": 4.9,
+        "reviews_count": 220,
+        "amenities": [
+          "Historic Architecture",
+          "Downtown",
+          "Unique"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 22.0
+      },
+      {
+        "name": "Receptions Banquet & Conference",
+        "address": "5765 Cheviot Road",
+        "city": "Cincinnati",
+        "state": "OH",
+        "zip_code": "45247",
+        "capacity": 350,
+        "capacity_category": "grand",
+        "phone": "(513) 741-3500",
+        "website": "https://receptionsinc.com",
+        "price_range": "$$",
+        "venue_type": "Banquet Hall",
+        "rating": 4.6,
+        "reviews_count": 90,
+        "amenities": [
+          "Multiple Rooms",
+          "Catering",
+          "Parking"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 15.0
+      },
+      {
+        "name": "The Phoenix",
+        "address": "812 Race Street",
+        "city": "Cincinnati",
+        "state": "OH",
+        "zip_code": "45202",
+        "capacity": 400,
+        "capacity_category": "grand",
+        "phone": "(513) 721-8901",
+        "website": "https://thephoenixcincy.com",
+        "price_range": "$$$$",
+        "venue_type": "Historic/Ballroom",
+        "rating": 4.9,
+        "reviews_count": 350,
+        "amenities": [
+          "Historic Building",
+          "Downtown",
+          "Full Service"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 22.0
+      },
+      {
+        "name": "The Savannah Center",
+        "address": "2190 Holt Road",
+        "city": "West Chester",
+        "state": "OH",
+        "zip_code": "45069",
+        "capacity": 500,
+        "capacity_category": "grand",
+        "phone": "(513) 777-1222",
+        "website": "https://thesavannahcenter.com",
+        "price_range": "$$$$",
+        "venue_type": "Banquet Hall",
+        "rating": 4.7,
+        "reviews_count": 200,
+        "amenities": [
+          "Full Service",
+          "Multiple Rooms",
+          "Catering"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 12.0
+      }
+    ]
+  },
+  "all_venues": [
+    {
+      "name": "The Barn at Edgin Farms",
+      "address": "1234 Edgin Road",
+      "city": "Hamilton",
+      "state": "OH",
+      "zip_code": "45011",
+      "capacity": 200,
+      "capacity_category": "large",
+      "phone": "(513) 555-0101",
+      "website": "https://example.com",
+      "price_range": "$$",
+      "venue_type": "Barn/Farm",
+      "rating": 4.8,
+      "reviews_count": 45,
+      "amenities": [
+        "Outdoor Ceremony",
+        "Catering Kitchen",
+        "Parking"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 5.2
+    },
+    {
+      "name": "Pyramid Hill Sculpture Park",
+      "address": "1763 Hamilton Cleves Road",
+      "city": "Hamilton",
+      "state": "OH",
+      "zip_code": "45013",
+      "capacity": 300,
+      "capacity_category": "grand",
+      "phone": "(513) 868-8336",
+      "website": "https://pyramidhill.org",
+      "price_range": "$$$",
+      "venue_type": "Garden/Outdoor",
+      "rating": 4.9,
+      "reviews_count": 120,
+      "amenities": [
+        "Outdoor Ceremony",
+        "Scenic Views",
+        "Art Installations"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 3.5
+    },
+    {
+      "name": "The Savannah Center",
+      "address": "2190 Holt Road",
+      "city": "West Chester",
+      "state": "OH",
+      "zip_code": "45069",
+      "capacity": 500,
+      "capacity_category": "grand",
+      "phone": "(513) 777-1222",
+      "website": "https://thesavannahcenter.com",
+      "price_range": "$$$$",
+      "venue_type": "Banquet Hall",
+      "rating": 4.7,
+      "reviews_count": 200,
+      "amenities": [
+        "Full Service",
+        "Multiple Rooms",
+        "Catering"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 12.0
+    },
+    {
+      "name": "The Phoenix",
+      "address": "812 Race Street",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45202",
+      "capacity": 400,
+      "capacity_category": "grand",
+      "phone": "(513) 721-8901",
+      "website": "https://thephoenixcincy.com",
+      "price_range": "$$$$",
+      "venue_type": "Historic/Ballroom",
+      "rating": 4.9,
+      "reviews_count": 350,
+      "amenities": [
+        "Historic Building",
+        "Downtown",
+        "Full Service"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 22.0
+    },
+    {
+      "name": "Pinecroft at Crosley Estate",
+      "address": "2267 Werk Road",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45211",
+      "capacity": 250,
+      "capacity_category": "large",
+      "phone": "(513) 251-3366",
+      "website": "https://pinecroftatestate.com",
+      "price_range": "$$$",
+      "venue_type": "Estate/Mansion",
+      "rating": 4.8,
+      "reviews_count": 180,
+      "amenities": [
+        "Historic Estate",
+        "Gardens",
+        "Indoor/Outdoor"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 18.5
+    },
+    {
+      "name": "Pattison Lodge",
+      "address": "5225 Kyles Station Road",
+      "city": "Liberty Township",
+      "state": "OH",
+      "zip_code": "45044",
+      "capacity": 150,
+      "capacity_category": "medium",
+      "phone": "(513) 867-5835",
+      "website": "https://butlercountymetroparks.org",
+      "price_range": "$",
+      "venue_type": "Park/Lodge",
+      "rating": 4.5,
+      "reviews_count": 65,
+      "amenities": [
+        "Rustic",
+        "Park Setting",
+        "Affordable"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 8.0
+    },
+    {
+      "name": "Receptions Banquet & Conference",
+      "address": "5765 Cheviot Road",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45247",
+      "capacity": 350,
+      "capacity_category": "grand",
+      "phone": "(513) 741-3500",
+      "website": "https://receptionsinc.com",
+      "price_range": "$$",
+      "venue_type": "Banquet Hall",
+      "rating": 4.6,
+      "reviews_count": 90,
+      "amenities": [
+        "Multiple Rooms",
+        "Catering",
+        "Parking"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 15.0
+    },
+    {
+      "name": "Oasis Golf Club & Conference Center",
+      "address": "902 Loveland Miamiville Road",
+      "city": "Loveland",
+      "state": "OH",
+      "zip_code": "45140",
+      "capacity": 200,
+      "capacity_category": "large",
+      "phone": "(513) 677-9000",
+      "website": "https://oasisconferencecenter.com",
+      "price_range": "$$",
+      "venue_type": "Golf Club",
+      "rating": 4.4,
+      "reviews_count": 75,
+      "amenities": [
+        "Golf Course Views",
+        "Outdoor Patio",
+        "Full Service"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 25.0
+    },
+    {
+      "name": "The Transept",
+      "address": "1205 Elm Street",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45202",
+      "capacity": 300,
+      "capacity_category": "grand",
+      "phone": "(513) 818-3564",
+      "website": "https://thetransept.com",
+      "price_range": "$$$$",
+      "venue_type": "Historic Church",
+      "rating": 4.9,
+      "reviews_count": 220,
+      "amenities": [
+        "Historic Architecture",
+        "Downtown",
+        "Unique"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 22.0
+    },
+    {
+      "name": "Niederman Family Farm",
+      "address": "5110 Lesourdsville Road",
+      "city": "Liberty Township",
+      "state": "OH",
+      "zip_code": "45044",
+      "capacity": 175,
+      "capacity_category": "medium",
+      "phone": "(513) 738-9769",
+      "website": "https://niedermanfamilyfarm.com",
+      "price_range": "$$",
+      "venue_type": "Barn/Farm",
+      "rating": 4.7,
+      "reviews_count": 95,
+      "amenities": [
+        "Rustic Barn",
+        "Farm Setting",
+        "Outdoor Options"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 10.0
+    },
+    {
+      "name": "French Park",
+      "address": "3012 Section Road",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45237",
+      "capacity": 100,
+      "capacity_category": "medium",
+      "phone": "(513) 531-5676",
+      "website": "https://frenchparkcincinnati.com",
+      "price_range": "$$",
+      "venue_type": "Garden/Outdoor",
+      "rating": 4.6,
+      "reviews_count": 55,
+      "amenities": [
+        "Garden Setting",
+        "Historic Home",
+        "Intimate"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 20.0
+    },
+    {
+      "name": "The Monastery Event Center",
+      "address": "1850 St. Gregory Street",
+      "city": "Cincinnati",
+      "state": "OH",
+      "zip_code": "45202",
+      "capacity": 200,
+      "capacity_category": "large",
+      "phone": "(513) 421-9900",
+      "website": "https://monasteryevents.com",
+      "price_range": "$$$",
+      "venue_type": "Historic/Religious",
+      "rating": 4.8,
+      "reviews_count": 140,
+      "amenities": [
+        "Historic Monastery",
+        "Gardens",
+        "Unique Architecture"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 21.0
+    }
+  ]
+}
