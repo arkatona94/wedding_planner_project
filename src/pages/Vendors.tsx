@@ -253,196 +253,193 @@ export default function Vendors() {
             </div>
       ))}
     </div>
-  )
-}
-
-{/* Add/Edit Modal */ }
-{
-  showAddModal && (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto py-8">
-      <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
-        <h2 className="text-xl font-serif text-gray-800 mb-4">{editingVendor ? 'Edit Vendor' : 'Add Vendor'}</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name</label>
-              {getVendorList(formData.category).length > 0 ? (
-                <div className="space-y-2">
-                  <select
-                    className="input-field"
-                    onChange={(e) => {
-                      const list = getVendorList(formData.category)
-                      const selectedVendor = list.find((v: any) => v.name === e.target.value)
-
-                      if (selectedVendor) {
-                        let notes = ''
-                        if (selectedVendor.capacity) notes += `Capacity: ${selectedVendor.capacity} guests\n`
-                        if (selectedVendor.address) notes += `Address: ${selectedVendor.address}, ${selectedVendor.city}, ${selectedVendor.state || 'OH'} ${selectedVendor.zip_code || ''}\n`
-
-                        const tags = selectedVendor.tags || selectedVendor.amenities || []
-
-                        setFormData({
-                          ...formData,
-                          name: selectedVendor.name,
-                          contactName: '',
-                          phone: selectedVendor.phone || '',
-                          email: '',
-                          website: selectedVendor.website || '',
-                          price: (selectedVendor.price_range?.length || 0) * 1000,
-                          rating: selectedVendor.rating || 5,
-                          notes: notes.trim(),
-                          tags: tags
-                        })
-                      } else {
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                    }}
-                    value={getVendorList(formData.category).some((v: any) => v.name === formData.name) ? formData.name : ''}
-                  >
-                    <option value="">Select a {vendorCategories.find(c => c.value === formData.category)?.label}...</option>
-                    {getVendorList(formData.category).map((vendor: any, index: number) => (
-                      <option key={index} value={vendor.name}>
-                        {vendor.name} ({vendor.city})
-                      </option>
-                    ))}
-                    <option value="custom">Enter Custom Name...</option>
-                  </select>
-                  {(!getVendorList(formData.category).some((v: any) => v.name === formData.name)) && (
-                    <input
-                      type="text"
-                      placeholder="Enter vendor name"
-                      required
-                      className="input-field"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    />
-                  )}
-                </div>
-              ) : (
-                <input type="text" required className="input-field" value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select className="input-field" value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value as VendorCategory })}>
-                {vendorCategories.map(cat => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Highlights Display */}
-            {formData.tags && formData.tags.length > 0 && (
-              <div className="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100 mt-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Highlights & Offerings</p>
-                <div className="flex flex-wrap gap-2">
-                  {formData.tags.map((tag, idx) => (
-                    <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 border border-primary-100">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
-            <input type="text" className="input-field" value={formData.contactName}
-              onChange={(e) => setFormData({ ...formData, contactName: e.target.value })} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" className="input-field" value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input type="tel" className="input-field" value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-            <input type="url" className="input-field" value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
-              <input type="number" className="input-field" value={formData.price || ''}
-                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rating (1-5)</label>
-              <input
-                type="number"
-                min="1"
-                max="5"
-                step="0.1"
-                className={`input-field ${getVendorList(formData.category).some((v: any) => v.name === formData.name) ? 'bg-gray-100 text-gray-500' : ''}`}
-                value={formData.rating}
-                onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
-                disabled={getVendorList(formData.category).some((v: any) => v.name === formData.name)}
-              />
-              {getVendorList(formData.category).some((v: any) => v.name === formData.name) && (
-                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  Verified from source
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea className="input-field" rows={2} value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-            <div className="space-y-4">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={formData.contracted}
-                  onChange={(e) => setFormData({ ...formData, contracted: e.target.checked })} />
-                <span className="text-sm font-medium text-gray-700">Contracted/Booked</span>
-              </label>
-
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={formData.depositPaid}
-                  onChange={(e) => setFormData({ ...formData, depositPaid: e.target.checked })} />
-                <span className="text-sm font-medium text-gray-700">Deposit Paid</span>
-              </label>
-            </div>
-
-            {formData.depositPaid && (
+      {/* Add/Edit Modal */ }
+  {
+    showAddModal && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto py-8">
+        <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
+          <h2 className="text-xl font-serif text-gray-800 mb-4">{editingVendor ? 'Edit Vendor' : 'Add Vendor'}</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Deposit Amount ($)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name</label>
+                {getVendorList(formData.category).length > 0 ? (
+                  <div className="space-y-2">
+                    <select
+                      className="input-field"
+                      onChange={(e) => {
+                        const list = getVendorList(formData.category)
+                        const selectedVendor = list.find((v: any) => v.name === e.target.value)
+
+                        if (selectedVendor) {
+                          let notes = ''
+                          if (selectedVendor.capacity) notes += `Capacity: ${selectedVendor.capacity} guests\n`
+                          if (selectedVendor.address) notes += `Address: ${selectedVendor.address}, ${selectedVendor.city}, ${selectedVendor.state || 'OH'} ${selectedVendor.zip_code || ''}\n`
+
+                          const tags = selectedVendor.tags || selectedVendor.amenities || []
+
+                          setFormData({
+                            ...formData,
+                            name: selectedVendor.name,
+                            contactName: '',
+                            phone: selectedVendor.phone || '',
+                            email: '',
+                            website: selectedVendor.website || '',
+                            price: (selectedVendor.price_range?.length || 0) * 1000,
+                            rating: selectedVendor.rating || 5,
+                            notes: notes.trim(),
+                            tags: tags
+                          })
+                        } else {
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                      }}
+                      value={getVendorList(formData.category).some((v: any) => v.name === formData.name) ? formData.name : ''}
+                    >
+                      <option value="">Select a {vendorCategories.find(c => c.value === formData.category)?.label}...</option>
+                      {getVendorList(formData.category).map((vendor: any, index: number) => (
+                        <option key={index} value={vendor.name}>
+                          {vendor.name} ({vendor.city})
+                        </option>
+                      ))}
+                      <option value="custom">Enter Custom Name...</option>
+                    </select>
+                    {(!getVendorList(formData.category).some((v: any) => v.name === formData.name)) && (
+                      <input
+                        type="text"
+                        placeholder="Enter vendor name"
+                        required
+                        className="input-field"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <input type="text" required className="input-field" value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select className="input-field" value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value as VendorCategory })}>
+                  {vendorCategories.map(cat => (
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Highlights Display */}
+              {formData.tags && formData.tags.length > 0 && (
+                <div className="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100 mt-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Highlights & Offerings</p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tags.map((tag, idx) => (
+                      <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 border border-primary-100">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+              <input type="text" className="input-field" value={formData.contactName}
+                onChange={(e) => setFormData({ ...formData, contactName: e.target.value })} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" className="input-field" value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input type="tel" className="input-field" value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+              <input type="url" className="input-field" value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                <input type="number" className="input-field" value={formData.price || ''}
+                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rating (1-5)</label>
                 <input
                   type="number"
-                  className="input-field bg-white"
-                  value={formData.depositAmount || ''}
-                  onChange={(e) => setFormData({ ...formData, depositAmount: Number(e.target.value) })}
+                  min="1"
+                  max="5"
+                  step="0.1"
+                  className={`input-field ${getVendorList(formData.category).some((v: any) => v.name === formData.name) ? 'bg-gray-100 text-gray-500' : ''}`}
+                  value={formData.rating}
+                  onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
+                  disabled={getVendorList(formData.category).some((v: any) => v.name === formData.name)}
                 />
+                {getVendorList(formData.category).some((v: any) => v.name === formData.name) && (
+                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Verified from source
+                  </p>
+                )}
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className="flex gap-3 justify-end pt-4">
-            <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>
-            <button type="submit" className="btn-primary">{editingVendor ? 'Save Changes' : 'Add Vendor'}</button>
-          </div>
-        </form>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea className="input-field" rows={2} value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+              <div className="space-y-4">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={formData.contracted}
+                    onChange={(e) => setFormData({ ...formData, contracted: e.target.checked })} />
+                  <span className="text-sm font-medium text-gray-700">Contracted/Booked</span>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={formData.depositPaid}
+                    onChange={(e) => setFormData({ ...formData, depositPaid: e.target.checked })} />
+                  <span className="text-sm font-medium text-gray-700">Deposit Paid</span>
+                </label>
+              </div>
+
+              {formData.depositPaid && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Deposit Amount ($)</label>
+                  <input
+                    type="number"
+                    className="input-field bg-white"
+                    value={formData.depositAmount || ''}
+                    onChange={(e) => setFormData({ ...formData, depositAmount: Number(e.target.value) })}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 justify-end pt-4">
+              <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>
+              <button type="submit" className="btn-primary">{editingVendor ? 'Save Changes' : 'Add Vendor'}</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
     </div >
   )
 }
