@@ -1,7 +1,9 @@
-import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { differenceInDays, format } from 'date-fns'
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts'
+
+const CHART_COLORS = ['#c97f66', '#9dc183', '#d4af37', '#d4a5a5', '#b5644d', '#7d4336', '#dba08b', '#f3d9d0']
+const mealOptions = ['Chicken', 'Beef', 'Fish', 'Vegetarian', 'Vegan', 'Kids Meal']
 
 export default function Dashboard() {
   const { wedding, checklist, budgetItems, guests, vendors, setWedding } = useWeddingStore()
@@ -38,6 +40,21 @@ export default function Dashboard() {
     }
     return acc
   }, [] as { category: string; amount: number }[])
+
+  const groupData = [...new Set(guests.map(g => g.group))].filter(Boolean)
+    .map(group => {
+      const groupGuests = guests.filter(g => g.group === group)
+      const total = groupGuests.length + groupGuests.filter(g => g.plusOne).length
+      return { name: group, value: total }
+    })
+    .filter(d => d.value > 0)
+
+  const mealData = mealOptions
+    .map(meal => {
+      const count = guests.filter(g => g.rsvpStatus === 'attending' && g.mealChoice === meal).length
+      return { name: meal, value: count }
+    })
+    .filter(d => d.value > 0)
 
   const upcomingTasks = checklist
     .filter(item => !item.completed && item.dueDate)
@@ -111,7 +128,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Quick Navigation Panel */}
+      {/* Date Header Panel */}
       <div className="card bg-gradient-to-r from-primary-50 to-wedding-blush">
         <div className="flex items-center justify-between">
           <div>
@@ -131,51 +148,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Navigation Panel */}
-      <div className="grid grid-cols-3 lg:grid-cols-7 gap-3">
-        <Link to="/checklist" className="group bg-blue-50/50 hover:bg-blue-50 p-3 rounded-2xl border border-blue-100 hover:border-blue-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-white text-blue-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            ✓
-          </div>
-          <span className="text-sm font-medium text-gray-700">Checklist</span>
-        </Link>
-        <Link to="/budget" className="group bg-green-50/50 hover:bg-green-50 p-3 rounded-2xl border border-green-100 hover:border-green-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-white text-green-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            💰
-          </div>
-          <span className="text-sm font-medium text-gray-700">Budget</span>
-        </Link>
-        <Link to="/guests" className="group bg-purple-50/50 hover:bg-purple-50 p-3 rounded-2xl border border-purple-100 hover:border-purple-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-white text-purple-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            👥
-          </div>
-          <span className="text-sm font-medium text-gray-700">Guests</span>
-        </Link>
-        <Link to="/timeline" className="group bg-orange-50/50 hover:bg-orange-50 p-3 rounded-2xl border border-orange-100 hover:border-orange-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-white text-orange-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            📅
-          </div>
-          <span className="text-sm font-medium text-gray-700">Timeline</span>
-        </Link>
-        <Link to="/photos" className="group bg-pink-50/50 hover:bg-pink-50 p-3 rounded-2xl border border-pink-100 hover:border-pink-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-white text-pink-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            📸
-          </div>
-          <span className="text-sm font-medium text-gray-700">Photos</span>
-        </Link>
-        <Link to="/website" className="group bg-indigo-50/50 hover:bg-indigo-50 p-3 rounded-2xl border border-indigo-100 hover:border-indigo-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-white text-indigo-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            🌐
-          </div>
-          <span className="text-sm font-medium text-gray-700">Website</span>
-        </Link>
-        <Link to="/marriage-laws" className="group bg-teal-50/50 hover:bg-teal-50 p-3 rounded-2xl border border-teal-100 hover:border-teal-200 transition-all duration-300 flex flex-col items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-white text-teal-500 shadow-sm flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            ⚖️
-          </div>
-          <span className="text-sm font-medium text-gray-700">Laws</span>
-        </Link>
-      </div>
+      {/* Quick Navigation Panel removed as per user request */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="card">
@@ -213,6 +186,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* RSVP Status Chart */}
         <div className="card">
           <h3 className="text-lg font-medium text-gray-800 mb-4">RSVP Status</h3>
           {guests.length > 0 ? (
@@ -227,11 +201,11 @@ export default function Dashboard() {
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="flex justify-center gap-6 mt-4">
+              <div className="flex justify-center flex-wrap gap-4 mt-4">
                 {rsvpData.map((item) => (
                   <div key={item.name} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-sm text-gray-600">{item.name}: {item.value}</span>
+                    <span className="text-sm text-gray-600 font-medium">{item.name}: {item.value}</span>
                   </div>
                 ))}
               </div>
@@ -241,6 +215,7 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Budget Chart */}
         <div className="card">
           <h3 className="text-lg font-medium text-gray-800 mb-4">Spending by Category</h3>
           {budgetByCategory.length > 0 ? (
@@ -257,6 +232,66 @@ export default function Dashboard() {
           ) : (
             <p className="text-gray-500 text-center py-8">Add budget items to see spending</p>
           )}
+        </div>
+
+        {/* Guest Grouping Chart */}
+        <div className="card h-[380px] flex flex-col group hover:shadow-lg transition-all duration-500 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary-50 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-125 duration-700" />
+          <h3 className="text-lg font-serif text-gray-800 mb-4 relative z-10">Guest Circles</h3>
+          <div className="flex-1 relative z-10">
+            {groupData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={groupData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value">
+                    {groupData.map((_entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No group data available</p>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 relative z-10">
+            {groupData.slice(0, 4).map((g, i) => (
+              <div key={g.name} className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{g.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Meal Selection Chart */}
+        <div className="card h-[380px] flex flex-col group hover:shadow-lg transition-all duration-500 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-125 duration-700" />
+          <h3 className="text-lg font-serif text-gray-800 mb-4 relative z-10">Catering Summary</h3>
+          <div className="flex-1 relative z-10">
+            {mealData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={mealData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value">
+                    {mealData.map((_entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[(index + 3) % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-gray-500 text-center py-8 italic text-sm">Awaiting meal confirmations</p>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 relative z-10">
+            {mealData.slice(0, 4).map((m, i) => (
+              <div key={m.name} className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[(i + 3) % CHART_COLORS.length] }} />
+                <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{m.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

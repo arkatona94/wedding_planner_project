@@ -11,6 +11,7 @@ import Photos from './pages/Photos'
 import Website from './pages/Website'
 import Settings from './pages/Settings'
 import MarriageLaws from './pages/MarriageLaws'
+import DetailedBudget from './pages/DetailedBudget'
 
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route index element={<Dashboard />} />
         <Route path="checklist" element={<Checklist />} />
         <Route path="budget" element={<Budget />} />
+        <Route path="budget/detailed" element={<DetailedBudget />} />
         <Route path="guests" element={<Guests />} />
         <Route path="vendors" element={<Vendors />} />
         <Route path="seating" element={<Seating />} />

@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useWeddingStore } from '../store/weddingStore'
 import { format } from 'date-fns'
 
 export default function Settings() {
   const { wedding, setWedding, checklist, budgetItems, guests, vendors, tables, timelineEvents, photos } = useWeddingStore()
+  const [showClearModal, setShowClearModal] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
 
   const exportData = () => {
     const data = {
@@ -24,11 +27,16 @@ export default function Settings() {
     a.click()
   }
 
-  const clearAllData = () => {
-    if (window.confirm('Are you sure you want to clear ALL wedding data? This cannot be undone.')) {
+  const handleClearData = () => {
+    if (confirmText === 'Clear Data') {
       localStorage.removeItem('wedding-planner-storage')
       window.location.reload()
     }
+  }
+
+  const clearAllData = () => {
+    setShowClearModal(true)
+    setConfirmText('')
   }
 
   return (
@@ -261,6 +269,56 @@ export default function Settings() {
         </div>
         <p className="text-xs text-gray-400 mt-4">Version 1.0.0 | Made with ❤️ for couples everywhere</p>
       </div>
+
+      {/* Clear Data Confirmation Modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-red-100 animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h2 className="text-2xl font-serif text-gray-800 text-center mb-2">Delete Everything?</h2>
+            <p className="text-gray-600 text-center mb-8 text-sm leading-relaxed">
+              This action is permanent and cannot be undone. All your guests, budget items, and planning progress will be lost.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 text-center">
+                  Type <span className="text-red-600">"Clear Data"</span> to proceed
+                </label>
+                <input
+                  type="text"
+                  className="input-field text-center font-medium border-red-200 focus:border-red-500 focus:ring-red-500"
+                  placeholder="Clear Data"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowClearModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Keep My Data
+                </button>
+                <button
+                  onClick={handleClearData}
+                  disabled={confirmText !== 'Clear Data'}
+                  className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all duration-300 ${confirmText === 'Clear Data'
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-200 hover:bg-red-700'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                >
+                  Delete All
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

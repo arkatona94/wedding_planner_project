@@ -61,6 +61,8 @@ export interface Guest {
   plusOneName: string
   tableAssignment: string | null
   group: string
+  isBrideSide: boolean
+  isGroomSide: boolean
   notes: string
 }
 
@@ -135,6 +137,7 @@ export interface Photo {
   likes: number
   tags: string[]
 }
+
 
 export interface WebsiteSettings {
   enabled: boolean

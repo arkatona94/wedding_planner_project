@@ -7,8 +7,12 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: '🏠' },
   { path: '/checklist', label: 'Checklist', icon: '✓' },
   { path: '/budget', label: 'Budget', icon: '💰' },
-  { path: '/vendors', label: 'Vendors', icon: '🤝' },
   { path: '/guests', label: 'Guests', icon: '👥' },
+  { path: '/timeline', label: 'Timeline', icon: '📅' },
+  { path: '/photos', label: 'Photos', icon: '📸' },
+  { path: '/website', label: 'Website', icon: '🌐' },
+  { path: '/marriage-laws', label: 'Laws', icon: '⚖️' },
+  { path: '/vendors', label: 'Vendors', icon: '🤝' },
   { path: '/settings', label: 'Settings', icon: '⚙️' },
 ]
 
