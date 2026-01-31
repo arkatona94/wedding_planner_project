@@ -9,7 +9,7 @@ const puppeteer = require('puppeteer');
 
     try {
         console.log('Navigating to Vendors page...');
-        await page.goto('http://localhost:3002/vendors', { waitUntil: 'domcontentloaded' });
+        await page.goto('http://localhost:3000/vendors', { waitUntil: 'domcontentloaded' });
 
         console.log('Taking screenshot of initial state...');
         await page.screenshot({ path: 'vendors_initial.png', fullPage: true });

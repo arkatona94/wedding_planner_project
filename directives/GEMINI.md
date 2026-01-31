@@ -91,6 +91,18 @@ The system supports event-driven execution via Modal webhooks. Each webhook maps
 
 **All webhook activity streams to Slack in real-time.**
 
+## Security & Secret Management
+
+**1. Never Hardcode Secrets**
+- Use environment variables (`.env`) for all API keys, tokens, and credentials.
+- In documentation or configuration files, use placeholders like `${VARIABLE_NAME}`.
+- Never commit `.env`, `credentials.json`, or `token.json` to version control (verified by `.gitignore`).
+
+**2. Scoped Access**
+- When creating GitHub tokens, use the minimum required scopes (e.g., `repo`, `workflow`).
+- Rotate keys regularly and delete unused tokens.
+- Ensure GitHub Agent only acts on permitted repositories.
+
 ---
 
 ## Multi-Agent Coordination
@@ -103,6 +115,7 @@ When working with specialized agents (Frontend, Backend, UX, DBA, Red Team), coo
 - **UX Agent**: User flows, accessibility, design systems, interaction patterns
 - **DBA Agent**: Schema design, query optimization, data migration, indexing strategies
 - **Red Team Agent**: Security testing, vulnerability assessment, threat modeling
+- **GitHub Agent**: Version control, repository management, PR reviews, automation workflows
 
 **Coordination Protocol:**
 1. **Context Handoff**: Each agent receives relevant artifacts and context through CLAUDE.md
@@ -113,7 +126,7 @@ When working with specialized agents (Frontend, Backend, UX, DBA, Red Team), coo
 **MCP Server Integration:**
 - Context7 for code context and documentation
 - Notion for project management and knowledge base
-- GitHub for version control and collaboration
+- GitHub for version control and collaboration (Full authority to connect and manage repositories)
 - Cursor IDE for development environment
 
 **Cross-Agent Communication:**
@@ -149,6 +162,13 @@ When working with specialized agents (Frontend, Backend, UX, DBA, Red Team), coo
       "args": ["-y", "@notionhq/mcp-server"],
       "env": {
         "NOTION_API_KEY": "${NOTION_API_KEY}"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
     }
   }
