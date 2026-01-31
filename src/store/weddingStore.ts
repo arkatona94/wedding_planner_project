@@ -22,7 +22,7 @@ const vendorCategoryMap: Record<string, string> = {
   music: 'Music/DJ',
   officiant: 'Officiant',
   cake: 'Cake',
-  rentals: 'Rentals',
+  rentals: 'Decor',
   transportation: 'Transportation',
   'hair-makeup': 'Hair & Makeup',
   other: 'Other'
@@ -82,6 +82,10 @@ interface WeddingState {
   // Website
   websiteSettings: WebsiteSettings
   updateWebsiteSettings: (settings: Partial<WebsiteSettings>) => void
+
+  // Maintenance
+  recalculateBudget: () => void
+  populateDefaultBudget: () => void
 }
 
 const defaultWedding: WeddingDetails = {
@@ -122,6 +126,52 @@ const defaultChecklist: ChecklistItem[] = [
   { id: uuidv4(), title: 'Shop for attire', description: 'Find wedding dress/suit and accessories', category: 'attire', dueDate: '', completed: false, priority: 'medium', notes: '' },
 ]
 
+const defaultBudget: BudgetItem[] = [
+  // Venue & Catering
+  { id: uuidv4(), category: 'Venue', vendor: 'Venue Rental', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Catering', vendor: 'Catering / Food', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Catering', vendor: 'Bar & Beverages', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Cake', vendor: 'Wedding Cake & Desserts', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Decor', vendor: 'Equipment Rentals (Tables/Chairs)', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+
+  // Attire & Beauty
+  { id: uuidv4(), category: 'Attire', vendor: 'Wedding Dress', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Attire', vendor: 'Tuxedo / Suit', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Attire', vendor: 'Alterations', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Hair & Makeup', vendor: 'Hair & Makeup Services', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Attire', vendor: 'Wedding Rings', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+
+  // Flowers & Decor
+  { id: uuidv4(), category: 'Flowers', vendor: 'Florist (Bouquets & Ceremony)', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Flowers', vendor: 'Reception Centerpieces', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Decor', vendor: 'Lighting & Decor Extras', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+
+  // Photography & Videography
+  { id: uuidv4(), category: 'Photography', vendor: 'Photographer', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Videography', vendor: 'Videographer', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Photography', vendor: 'Photo Booth', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+
+  // Music & Entertainment
+  { id: uuidv4(), category: 'Music/DJ', vendor: 'DJ / Band', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Music/DJ', vendor: 'Ceremony Musicians', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+
+  // Stationery
+  { id: uuidv4(), category: 'Invitations', vendor: 'Invitations & Save the Dates', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Invitations', vendor: 'Postage & Stationery', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+
+  // Transportation & Travel
+  { id: uuidv4(), category: 'Transportation', vendor: 'Wedding Day Transportation', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Transportation', vendor: 'Guest Shuttles', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Other', vendor: 'Hotel Accommodations', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+
+  // Legal & Planning
+  { id: uuidv4(), category: 'Officiant', vendor: 'Marriage License & Officiant', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Other', vendor: 'Wedding Planner / Coordinator', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Favors', vendor: 'Wedding Favors & Gifts', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Other', vendor: 'Rehearsal Dinner', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '' },
+  { id: uuidv4(), category: 'Other', vendor: 'Contingency Fund', estimatedCost: 0, actualCost: 0, paid: 0, dueDate: '', notes: '10% of total budget' },
+]
+
 export const useWeddingStore = create<WeddingState>()(
   persist(
     (set) => ({
@@ -154,7 +204,7 @@ export const useWeddingStore = create<WeddingState>()(
         })),
 
       // Budget
-      budgetItems: [],
+      budgetItems: defaultBudget,
       addBudgetItem: (item) =>
         set((state) => ({
           budgetItems: [...state.budgetItems, { ...item, id: uuidv4() }]
@@ -334,6 +384,43 @@ export const useWeddingStore = create<WeddingState>()(
       updateWebsiteSettings: (updates) =>
         set((state) => ({
           websiteSettings: { ...state.websiteSettings, ...updates }
+        })),
+
+      // Maintenance
+      recalculateBudget: () =>
+        set((state) => {
+          const vendors = state.vendors
+          let currentBudgetItems = state.budgetItems
+
+          // 1. Update/Add items for all existing vendors
+          const vendorBudgetItems = vendors.map((vendor) => {
+            const budgetCategory = vendorCategoryMap[vendor.category] || 'Other'
+            const existingItem = currentBudgetItems.find(item => item.vendorId === vendor.id)
+
+            return {
+              id: existingItem?.id || uuidv4(),
+              category: budgetCategory,
+              vendor: vendor.name,
+              vendorId: vendor.id,
+              estimatedCost: vendor.price || 0,
+              actualCost: vendor.contracted ? (vendor.price || 0) : 0,
+              paid: vendor.depositPaid ? (vendor.depositAmount || 0) : 0,
+              dueDate: existingItem?.dueDate || '',
+              notes: existingItem?.notes || `Generated from Vendor: ${vendor.name}`
+            }
+          })
+
+          // 2. Keep manual budget items (those without a vendorId)
+          const manualBudgetItems = currentBudgetItems.filter(item => !item.vendorId)
+
+          // 3. Remove duplicates (in case logic failed before) by keeping only the mapping we just built
+          return {
+            budgetItems: [...manualBudgetItems, ...vendorBudgetItems]
+          }
+        }),
+      populateDefaultBudget: () =>
+        set(() => ({
+          budgetItems: defaultBudget
         }))
     }),
     {

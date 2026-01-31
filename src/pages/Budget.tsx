@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import type { BudgetItem } from '../types'
@@ -66,9 +67,10 @@ const categoryColors: Record<string, string> = {
 }
 
 export default function Budget() {
-  const { wedding, budgetItems, addBudgetItem, updateBudgetItem, deleteBudgetItem, setWedding } = useWeddingStore()
+  const { wedding, budgetItems, addBudgetItem, updateBudgetItem, deleteBudgetItem, setWedding, recalculateBudget } = useWeddingStore()
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingItem, setEditingItem] = useState<BudgetItem | null>(null)
+  const [syncSuccess, setSyncSuccess] = useState(false)
 
   const [formData, setFormData] = useState({
     category: 'Venue',
@@ -141,7 +143,23 @@ export default function Budget() {
           <h1 className="text-2xl font-serif text-gray-800">Budget Tracker</h1>
           <p className="text-gray-500">Track your wedding expenses</p>
         </div>
-        <button onClick={() => setShowAddModal(true)} className="btn-primary">+ Add Expense</button>
+        <div className="flex gap-3">
+          <Link to="/budget/detailed" className="btn-secondary flex items-center gap-2">
+            📊 View Full Table
+          </Link>
+          <button
+            onClick={() => {
+              recalculateBudget()
+              setSyncSuccess(true)
+              setTimeout(() => setSyncSuccess(false), 3000)
+            }}
+            className="btn-secondary flex items-center gap-2"
+            title="Ensures all vendors have budget items and updates costs"
+          >
+            {syncSuccess ? '✅ Synced' : '🔄 Sync Vendors'}
+          </button>
+          <button onClick={() => setShowAddModal(true)} className="btn-primary">+ Add Expense</button>
+        </div>
       </div>
 
       {/* Budget Overview Cards */}
