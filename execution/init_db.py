@@ -199,7 +199,6 @@ CREATE POLICY "Users can see their own weddings" ON public.weddings FOR SELECT U
 CREATE POLICY "Users can manage their own weddings" ON public.weddings FOR ALL USING (auth.uid() = user_id);
 
 -- 3. Checklist Items (and others): Link via wedding_id which links to user_id
--- We'll use a helper function or join for efficiency, but for now simple check:
 CREATE POLICY "Users can manage checklist_items" ON public.checklist_items FOR ALL 
 USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
@@ -242,6 +241,23 @@ CREATE TRIGGER update_vendors_updated_at BEFORE UPDATE ON public.vendors FOR EAC
 CREATE TRIGGER update_timeline_events_updated_at BEFORE UPDATE ON public.timeline_events FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_seating_tables_updated_at BEFORE UPDATE ON public.seating_tables FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_room_elements_updated_at BEFORE UPDATE ON public.room_elements FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Trigger to create profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, app_settings)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', '{"enabledModules": ["dashboard", "checklist", "budget"], "darkMode": false}'::jsonb);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Remove existing trigger if it exists to avoid errors on re-run
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 """
 
 

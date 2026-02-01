@@ -34,6 +34,7 @@ You operate within a 3-layer architecture that separates concerns to maximize re
 Before writing a script, check `execution/` per your directive. Only create new scripts if none exist.
 
 **2. Self-anneal when things break**
+- **MANDATORY**: Follow the [SOP for Self-Annealing](file:///c:/Users/sharp/src/Wedding_Planner_Project/directives/annealing.md)
 - Read error message and stack trace
 - Fix the script and test it again (unless it uses paid tokens/credits/etc—in which case you check w user first)
 - Update the directive with what you learned (API limits, timing, edge cases)
@@ -49,7 +50,8 @@ Errors are learning opportunities. When something breaks:
 2. Update the tool
 3. Test tool, make sure it works
 4. Update directive to include new flow
-5. System is now stronger
+5. **Update [annealing.md](file:///c:/Users/sharp/src/Wedding_Planner_Project/directives/annealing.md)** to ensure all agents (Claude, Gemini, ChatGPT, Abacus) learn from this fix.
+6. System is now stronger
 
 ## File Organization
 

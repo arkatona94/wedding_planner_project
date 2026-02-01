@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
+import { supabase } from '../lib/supabase'
 import type {
   WeddingDetails,
   ChecklistItem,
@@ -122,7 +123,7 @@ interface WeddingState {
   // User & Auth
   user: AuthUser | null
   setUser: (user: AuthUser | null) => void
-  signOut: () => void
+  signOut: () => Promise<void>
 
   // Maintenance
   recalculateBudget: () => void
@@ -240,7 +241,10 @@ export const useWeddingStore = create<WeddingState>()(
       // User & Auth
       user: null,
       setUser: (user) => set({ user }),
-      signOut: () => set({ user: null }),
+      signOut: async () => {
+        await supabase.auth.signOut()
+        set({ user: null })
+      },
 
       // Wedding Details
       wedding: defaultWedding,
