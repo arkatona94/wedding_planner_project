@@ -1,0 +1,18 @@
+# EverAfter Wedding Planner - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core
+python-dotenv==1.0.0
+
+# Supabase
+supabase==2.9.1
+
+# Email Provider
+resend==0.8.0
+
+# SMS Provider
+twilio==8.11.1
+
+# Testing (optional)
+pytest==7.4.3
+pytest-cov==4.1.0

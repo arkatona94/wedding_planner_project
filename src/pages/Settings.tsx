@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { format } from 'date-fns'
-import { CheckCircle2, LayoutDashboard, Calculator, Users, Globe, Grid, Clock, Camera, Sparkles, Scale } from 'lucide-react'
+import { CheckCircle2, LayoutDashboard, Calculator, Users, Globe, Grid, Clock, Camera, Sparkles, Scale, Wand2 } from 'lucide-react'
+import { fileToCompressedDataUrl } from '../lib/imageUtils'
 
 const modules = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, required: true },
@@ -19,9 +20,45 @@ const modules = [
 ]
 
 export default function Settings() {
-  const { wedding, setWedding, checklist, budgetItems, guests, vendors, tables, timelineEvents, photos, appSettings, updateAppSettings } = useWeddingStore()
+  const { wedding, setWedding, checklist, budgetItems, guests, vendors, tables, timelineEvents, photos, appSettings, updateAppSettings, user } = useWeddingStore()
   const [showClearModal, setShowClearModal] = useState(false)
   const [confirmText, setConfirmText] = useState('')
+  const [isUploadingBridePhoto, setIsUploadingBridePhoto] = useState(false)
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false)
+
+  const handleBridePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.')
+      return
+    }
+
+    setIsUploadingBridePhoto(true)
+
+    try {
+      // Compress to a reasonable size for LLM tokens and local storage
+      const dataUrl = await fileToCompressedDataUrl(file, 800, 800, 0.7)
+      if (dataUrl) {
+        updateAppSettings({ bridePhoto: dataUrl })
+      }
+    } catch (err) {
+      console.error('Failed to process image:', err)
+      alert('Failed to process photo. Please try again.')
+    } finally {
+      setIsUploadingBridePhoto(false)
+      // Reset input
+      e.target.value = ''
+    }
+  }
+
+  const handleRemoveBridePhoto = () => {
+    if (confirm('Remove your bride photo? This will disable the dress try-on feature until you upload a new photo.')) {
+      updateAppSettings({ bridePhoto: undefined })
+    }
+  }
 
   const exportData = () => {
     const data = {
@@ -65,6 +102,205 @@ export default function Settings() {
         </div>
         <h1 className="text-2xl font-serif text-gray-800">Settings</h1>
         <p className="text-gray-500">Manage your wedding details and preferences</p>
+      </div>
+
+      {/* Account Settings */}
+      <div className="card">
+        <h3 className="font-medium text-gray-800 mb-4">Account</h3>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 p-4 bg-primary-50 rounded-xl border border-primary-100">
+            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary-600 font-bold text-lg shadow-sm">
+              {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-gray-800">{user?.name || 'Wedding Planner'}</p>
+              <p className="text-sm text-gray-500">{user?.email}</p>
+            </div>
+            <Link
+              to="/forgot-password"
+              className="text-xs font-medium text-primary-600 hover:text-primary-700 bg-white px-3 py-2 rounded-lg shadow-sm border border-primary-100"
+            >
+              Change Password
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Dress Try-On Settings */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-4">
+          <Wand2 className="w-5 h-5 text-primary-600" />
+          <h3 className="font-medium text-gray-800">AI Dress Try-On</h3>
+        </div>
+        <p className="text-sm text-gray-500 mb-6">
+          Upload your photo to virtually try on dresses from your Inspiration boards using AI.
+        </p>
+
+        {/* Bride Photo Upload */}
+        <div className="space-y-4">
+          <div className="flex items-start gap-4">
+            {appSettings.bridePhoto ? (
+              <div className="relative group">
+                <img
+                  src={appSettings.bridePhoto}
+                  alt="Your photo"
+                  className="w-32 h-40 object-contain rounded-xl border-2 border-primary-200 shadow-md bg-gray-100"
+                />
+                <button
+                  onClick={handleRemoveBridePhoto}
+                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                  title="Remove photo"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <label className={`w-32 h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors ${isUploadingBridePhoto
+                ? 'border-primary-300 bg-primary-50'
+                : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50/50'
+                }`}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBridePhotoUpload}
+                  disabled={isUploadingBridePhoto}
+                  className="hidden"
+                />
+                {isUploadingBridePhoto ? (
+                  <svg className="animate-spin h-8 w-8 text-primary-500" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  <>
+                    <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="text-xs text-gray-500 text-center px-2">Upload Photo</span>
+                  </>
+                )}
+              </label>
+            )}
+            <div className="flex-1">
+              <h4 className="font-medium text-gray-700 mb-1">Your Photo</h4>
+              <p className="text-sm text-gray-500 mb-3">
+                Upload a full-body or half-body photo for best results. The AI will use this to show you in different dresses.
+              </p>
+              <div className="text-xs text-gray-400 space-y-1">
+                <p>Tips for best results:</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>Use a well-lit, clear photo</li>
+                  <li>Stand in a neutral pose</li>
+                  <li>Plain background works best</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Google Gemini API Key */}
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-700">Google Gemini API Key</h4>
+                <p className="text-sm text-gray-500">
+                  Required for AI dress try-on feature
+                </p>
+              </div>
+              {appSettings.geminiApiKey ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-green-600 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Key saved
+                  </span>
+                  <button
+                    onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                    className="text-sm text-primary-600 hover:text-primary-700"
+                  >
+                    {showApiKeyInput ? 'Hide' : 'Change'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                  className="btn-secondary text-sm py-1.5"
+                >
+                  Add API Key
+                </button>
+              )}
+            </div>
+
+            {showApiKeyInput && (
+              <div className="mt-3">
+                <input
+                  type="password"
+                  placeholder="AIza..."
+                  className="input-field text-sm"
+                  defaultValue={appSettings.geminiApiKey || ''}
+                  onBlur={(e) => {
+                    const key = e.target.value.trim()
+                    if (key) {
+                      updateAppSettings({ geminiApiKey: key })
+                      setShowApiKeyInput(false)
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const key = (e.target as HTMLInputElement).value.trim()
+                      if (key) {
+                        updateAppSettings({ geminiApiKey: key })
+                        setShowApiKeyInput(false)
+                      }
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Get your API key from{' '}
+                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
+                    Google AI Studio
+                  </a>
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Local VTON API URL */}
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-700 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-gray-400" />
+                  Local VTON API URL
+                </h4>
+                <p className="text-sm text-gray-500">
+                  Optional: Use a local FASHN VTON server instead of Gemini
+                </p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <input
+                type="text"
+                placeholder="http://localhost:8000"
+                className="input-field text-sm font-mono"
+                defaultValue={appSettings.vtonApiUrl || ''}
+                onBlur={(e) => {
+                  const url = e.target.value.trim()
+                  updateAppSettings({ vtonApiUrl: url || undefined })
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const url = (e.target as HTMLInputElement).value.trim()
+                    updateAppSettings({ vtonApiUrl: url || undefined })
+                  }
+                }}
+              />
+              <p className="mt-1 text-[10px] text-gray-400">
+                Recommended for users with local GPU running `vton_server.py`
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Wedding Details */}
@@ -139,6 +375,32 @@ export default function Settings() {
                 onChange={(e) => setWedding({ estimatedGuests: Number(e.target.value) })}
               />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Wedding Day Schedule */}
+      <div className="card">
+        <h3 className="font-medium text-gray-800 mb-4">Wedding Day Schedule</h3>
+        <p className="text-sm text-gray-500 mb-4">Set the default start and end times for your wedding day timeline.</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Day Start Time</label>
+            <input
+              type="time"
+              className="input-field"
+              value={wedding.timelineStartTime || '08:00'}
+              onChange={(e) => setWedding({ timelineStartTime: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Day End Time</label>
+            <input
+              type="time"
+              className="input-field"
+              value={wedding.timelineEndTime || '23:00'}
+              onChange={(e) => setWedding({ timelineEndTime: e.target.value })}
+            />
           </div>
         </div>
       </div>

@@ -211,7 +211,7 @@ export default function Guests() {
     a.click()
   }
 
-  const rsvpUrl = `${window.location.origin}/rsvp`
+  const rsvpUrl = `${window.location.origin}/rsvp/${wedding.id}`
 
   return (
     <div className="space-y-6">

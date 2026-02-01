@@ -1,0 +1,18 @@
+[dotenv@17.2.3] injecting env (5) from .env -- tip: ⚙️  override existing env vars with { override: true }
+--- Database Table Verification ---
+✅ profiles                 : PASSED
+✅ weddings                 : PASSED
+✅ checklist_items          : PASSED
+✅ budget_items             : PASSED
+✅ guests                   : PASSED
+✅ vendors                  : PASSED
+✅ timeline_events          : PASSED
+✅ seating_tables           : PASSED
+✅ room_elements            : PASSED
+✅ photos                   : PASSED
+❌ inspiration_boards       : FAILED (Could not find the table 'public.inspiration_boards' in the schema cache)
+❌ inspiration_images       : FAILED (Could not find the table 'public.inspiration_images' in the schema cache)
+❌ communication_logs       : FAILED (Could not find the table 'public.communication_logs' in the schema cache)
+❌ public_rsvp_submissions  : FAILED (Could not find the table 'public.public_rsvp_submissions' in the schema cache)
+
+🔴 ISSUES FOUND: Some tables are missing or inaccessible.

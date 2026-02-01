@@ -1,38 +1,22 @@
-import requests
-import os
-import json
-from dotenv import load_dotenv
 
-load_dotenv()
+-- EverAfter Wedding Planner - Andromeda Setup Script
+-- Paste this into your Supabase SQL Editor (https://supabase.com/dashboard/project/xcjelqmifskowxxdtqrh/sql)
 
-SUPABASE_URL = "https://xcjelqmifskowxxdtqrh.supabase.co"
-SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-if not SERVICE_ROLE_KEY:
-    print("Error: SUPABASE_SERVICE_ROLE_KEY not found in .env")
-    exit(1)
-
-headers = {
-    "apikey": SERVICE_ROLE_KEY,
-    "Authorization": f"Bearer {SERVICE_ROLE_KEY}",
-    "Content-Type": "application/json",
-}
-
-# The SQL to initialize everything
-SQL_SCHEMA = """
--- EverAfter Wedding Planner Database Schema
+-- 1. Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- 2. Profiles Table
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT,
     full_name TEXT,
     avatar_url TEXT,
-    app_settings JSONB DEFAULT '{"enabledModules": [], "darkMode": false}'::jsonb,
+    app_settings JSONB DEFAULT '{"enabledModules": ["dashboard", "checklist", "budget"], "darkMode": false}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 3. Weddings Table
 CREATE TABLE IF NOT EXISTS public.weddings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
@@ -48,6 +32,7 @@ CREATE TABLE IF NOT EXISTS public.weddings (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 4. Checklist Items
 CREATE TABLE IF NOT EXISTS public.checklist_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wedding_id UUID REFERENCES public.weddings(id) ON DELETE CASCADE NOT NULL,
@@ -62,6 +47,7 @@ CREATE TABLE IF NOT EXISTS public.checklist_items (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 5. Budget Items
 CREATE TABLE IF NOT EXISTS public.budget_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wedding_id UUID REFERENCES public.weddings(id) ON DELETE CASCADE NOT NULL,
@@ -77,6 +63,7 @@ CREATE TABLE IF NOT EXISTS public.budget_items (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 6. Guests
 CREATE TABLE IF NOT EXISTS public.guests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wedding_id UUID REFERENCES public.weddings(id) ON DELETE CASCADE NOT NULL,
@@ -99,6 +86,7 @@ CREATE TABLE IF NOT EXISTS public.guests (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 7. Vendors
 CREATE TABLE IF NOT EXISTS public.vendors (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wedding_id UUID REFERENCES public.weddings(id) ON DELETE CASCADE NOT NULL,
@@ -116,6 +104,7 @@ CREATE TABLE IF NOT EXISTS public.vendors (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 8. Timeline Events
 CREATE TABLE IF NOT EXISTS public.timeline_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wedding_id UUID REFERENCES public.weddings(id) ON DELETE CASCADE NOT NULL,
@@ -128,6 +117,7 @@ CREATE TABLE IF NOT EXISTS public.timeline_events (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 9. Seating Tables
 CREATE TABLE IF NOT EXISTS public.seating_tables (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wedding_id UUID REFERENCES public.weddings(id) ON DELETE CASCADE NOT NULL,
@@ -144,6 +134,7 @@ CREATE TABLE IF NOT EXISTS public.seating_tables (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 10. Room Elements (Decor)
 CREATE TABLE IF NOT EXISTS public.room_elements (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wedding_id UUID REFERENCES public.weddings(id) ON DELETE CASCADE NOT NULL,
@@ -160,6 +151,7 @@ CREATE TABLE IF NOT EXISTS public.room_elements (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 11. Photos
 CREATE TABLE IF NOT EXISTS public.photos (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wedding_id UUID REFERENCES public.weddings(id) ON DELETE CASCADE NOT NULL,
@@ -170,7 +162,7 @@ CREATE TABLE IF NOT EXISTS public.photos (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLS
+-- Enable RLS on all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.weddings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.checklist_items ENABLE ROW LEVEL SECURITY;
@@ -182,30 +174,63 @@ ALTER TABLE public.seating_tables ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.room_elements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.photos ENABLE ROW LEVEL SECURITY;
 
--- TRUNCATE existing if any for fresh start in Andromeda
--- (Careful: Only if user wants fresh start)
-"""
+-- 12. RLS Policies
+CREATE POLICY "Users can manage their own profile" ON public.profiles FOR ALL USING (id = auth.uid());
+CREATE POLICY "Users can manage their own wedding" ON public.weddings FOR ALL USING (user_id = auth.uid());
 
+CREATE POLICY "Users can manage checklist_items" ON public.checklist_items FOR ALL 
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
-def run_sql():
-    # Since we can't run arbitrary SQL via the REST API without an RPC function,
-    # and we can't create an RPC function without the SQL editor or direct Postgres access,
-    # we have a chicken-and-egg problem.
+CREATE POLICY "Users can manage budget_items" ON public.budget_items FOR ALL 
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
-    # HOWEVER, the Supabase Management API (MCP) DOES allow executing SQL if authenticated.
-    # Since MCP fails, and direct Postgres fails...
+CREATE POLICY "Users can manage guests" ON public.guests FOR ALL 
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
-    # Let's try to see if we can use the Supabase Edge Functions to run SQL, or if there's any pre-existing 'exec' function.
+CREATE POLICY "Users can manage vendors" ON public.vendors FOR ALL 
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
-    print("Checking if 'profiles' table exists via REST API...")
-    resp = requests.get(f"{SUPABASE_URL}/rest/v1/profiles?select=*", headers=headers)
-    if resp.status_code == 200:
-        print("Profiles table already exists.")
-    elif resp.status_code == 404:
-        print("Profiles table DOES NOT exist. Database setup is still pending.")
-    else:
-        print(f"Error checking profiles table: {resp.status_code} {resp.text}")
+CREATE POLICY "Users can manage timeline_events" ON public.timeline_events FOR ALL 
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
+CREATE POLICY "Users can manage seating_tables" ON public.seating_tables FOR ALL 
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
-if __name__ == "__main__":
-    run_sql()
+CREATE POLICY "Users can manage room_elements" ON public.room_elements FOR ALL 
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
+
+CREATE POLICY "Users can manage photos" ON public.photos FOR ALL 
+USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
+
+-- 13. Registration Triggers
+-- Automatically create a profile when a new user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, app_settings)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', '{"enabledModules": ["dashboard", "checklist", "budget"], "darkMode": false}'::jsonb);
+  
+  -- Create initial wedding record
+  INSERT INTO public.weddings (user_id, partner1_name, partner2_name, total_budget, estimated_guests)
+  VALUES (NEW.id, 'Partner 1', 'Partner 2', 30000, 100);
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- 14. Updated_at Triggers
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_weddings_updated_at BEFORE UPDATE ON public.weddings FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();

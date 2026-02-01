@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
 import { supabase } from '../lib/supabase'
+import { fileToCompressedDataUrl, dataUrlToFile } from '../lib/imageUtils'
 import type {
   WeddingDetails,
   ChecklistItem,
@@ -42,6 +43,7 @@ interface WeddingState {
 
   // Checklist
   checklist: ChecklistItem[]
+  setChecklist: (items: ChecklistItem[]) => void
   addChecklistItem: (item: Omit<ChecklistItem, 'id'>) => void
   updateChecklistItem: (id: string, item: Partial<ChecklistItem>) => void
   deleteChecklistItem: (id: string) => void
@@ -49,12 +51,14 @@ interface WeddingState {
 
   // Budget
   budgetItems: BudgetItem[]
+  setBudgetItems: (items: BudgetItem[]) => void
   addBudgetItem: (item: Omit<BudgetItem, 'id'>) => void
   updateBudgetItem: (id: string, item: Partial<BudgetItem>) => void
   deleteBudgetItem: (id: string) => void
 
   // Guests
   guests: Guest[]
+  setGuests: (items: Guest[]) => void
   addGuest: (guest: Omit<Guest, 'id'>) => void
   updateGuest: (id: string, guest: Partial<Guest>) => void
   deleteGuest: (id: string) => void
@@ -63,6 +67,7 @@ interface WeddingState {
 
   // Vendors
   vendors: Vendor[]
+  setVendors: (items: Vendor[]) => void
   addVendor: (vendor: Omit<Vendor, 'id'>) => void
   updateVendor: (id: string, vendor: Partial<Vendor>) => void
   deleteVendor: (id: string) => void
@@ -85,14 +90,17 @@ interface WeddingState {
   // Timeline
   timelineEvents: TimelineEvent[]
   addTimelineEvent: (event: Omit<TimelineEvent, 'id'>) => void
-  updateTimelineEvent: (id: string, event: Partial<TimelineEvent>) => void
+  updateTimelineEvent: (id: string, event: Partial<TimelineEvent>, autoShift?: boolean) => void
   deleteTimelineEvent: (id: string) => void
+  shiftTimelineEvents: (id: string, minutes: number) => void
+  applyTimelineTemplate: () => void
 
   // Photos
   photos: Photo[]
-  addPhoto: (photo: Omit<Photo, 'id'>) => void
-  deletePhoto: (id: string) => void
-  likePhoto: (id: string) => void
+  setPhotos: (photos: Photo[]) => void
+  addPhoto: (photo: Omit<Photo, 'id'>) => Promise<void>
+  deletePhoto: (id: string) => Promise<void>
+  likePhoto: (id: string) => Promise<void>
 
   // Website
   websiteSettings: WebsiteSettings
@@ -113,12 +121,17 @@ interface WeddingState {
 
   // Inspiration Boards
   inspirationBoards: InspirationBoard[]
-  addInspirationBoard: (board: Omit<InspirationBoard, 'id' | 'createdAt' | 'updatedAt' | 'images'>) => void
-  updateInspirationBoard: (id: string, board: Partial<InspirationBoard>) => void
-  deleteInspirationBoard: (id: string) => void
-  addImageToBoard: (boardId: string, image: Omit<InspirationImage, 'id' | 'addedAt'>) => void
-  updateBoardImage: (boardId: string, imageId: string, updates: Partial<InspirationImage>) => void
-  removeImageFromBoard: (boardId: string, imageId: string) => void
+  setInspirationBoards: (boards: InspirationBoard[]) => void
+  addInspirationBoard: (board: Omit<InspirationBoard, 'id' | 'createdAt' | 'updatedAt' | 'images'>) => Promise<void>
+  updateInspirationBoard: (id: string, board: Partial<InspirationBoard>) => Promise<void>
+  deleteInspirationBoard: (id: string) => Promise<void>
+  addImageToBoard: (boardId: string, image: Omit<InspirationImage, 'id' | 'addedAt'>) => Promise<void>
+  updateBoardImage: (boardId: string, imageId: string, updates: Partial<InspirationImage>) => Promise<void>
+  removeImageFromBoard: (boardId: string, imageId: string) => Promise<void>
+  reorderBoardImages: (boardId: string, imageIds: string[]) => Promise<void>
+
+  // Storage
+  uploadFile: (bucket: 'photos' | 'inspiration', file: File, path?: string) => Promise<string | null>
 
   // User & Auth
   user: AuthUser | null
@@ -145,9 +158,10 @@ const defaultWedding: WeddingDetails = {
   ceremonyTime: '',
   receptionVenue: '',
   receptionAddress: '',
-  receptionLink: '',
   receptionTime: '',
-  sameLocation: false
+  sameLocation: false,
+  timelineStartTime: '08:00',
+  timelineEndTime: '23:00'
 }
 
 const defaultWebsiteSettings: WebsiteSettings = {
@@ -177,17 +191,44 @@ const defaultAppSettings: AppSettings = {
 
 // Default checklist items based on wedding planning best practices
 const defaultChecklist: ChecklistItem[] = [
-  { id: uuidv4(), title: 'Set wedding date', description: 'Choose your perfect wedding date', category: 'other', dueDate: '', completed: false, priority: 'high', notes: '' },
-  { id: uuidv4(), title: 'Determine budget', description: 'Establish your total wedding budget', category: 'other', dueDate: '', completed: false, priority: 'high', notes: '' },
-  { id: uuidv4(), title: 'Create guest list', description: 'Draft your initial guest list', category: 'other', dueDate: '', completed: false, priority: 'high', notes: '' },
-  { id: uuidv4(), title: 'Book venue', description: 'Research and book your ceremony and reception venues', category: 'venue', dueDate: '', completed: false, priority: 'high', notes: '' },
-  { id: uuidv4(), title: 'Hire photographer', description: 'Find and book a wedding photographer', category: 'photography', dueDate: '', completed: false, priority: 'high', notes: '' },
-  { id: uuidv4(), title: 'Choose catering', description: 'Select your catering service and menu', category: 'catering', dueDate: '', completed: false, priority: 'medium', notes: '' },
-  { id: uuidv4(), title: 'Order invitations', description: 'Design and order wedding invitations', category: 'invitations', dueDate: '', completed: false, priority: 'medium', notes: '' },
-  { id: uuidv4(), title: 'Book florist', description: 'Choose flowers and book florist', category: 'flowers', dueDate: '', completed: false, priority: 'medium', notes: '' },
-  { id: uuidv4(), title: 'Arrange music/DJ', description: 'Book band or DJ for reception', category: 'music', dueDate: '', completed: false, priority: 'medium', notes: '' },
-  { id: uuidv4(), title: 'Shop for attire', description: 'Find wedding dress/suit and accessories', category: 'attire', dueDate: '', completed: false, priority: 'medium', notes: '' },
+  // 12+ Months Before
+  { id: uuidv4(), title: 'Determine wedding budget', description: 'Establish your total budget and how it will be spent', category: 'other', dueDate: '', completed: false, priority: 'high', notes: '' },
+  { id: uuidv4(), title: 'Draft guest list', description: 'Create a preliminary list of guests to determine venue size', category: 'other', dueDate: '', completed: false, priority: 'high', notes: '' },
+  { id: uuidv4(), title: 'Book ceremony & reception venues', description: 'Research and secure locations for your wedding', category: 'venue', dueDate: '', completed: false, priority: 'high', notes: '' },
+  { id: uuidv4(), title: 'Hire wedding planner (if needed)', description: 'Decide if you want professional help for planning', category: 'other', dueDate: '', completed: false, priority: 'medium', notes: '' },
+
+  // 9-11 Months Before
+  { id: uuidv4(), title: 'Hire photographer & videographer', description: 'Secure your visual storytellers early', category: 'photography', dueDate: '', completed: false, priority: 'high', notes: '' },
+  { id: uuidv4(), title: 'Choose catering & menu', description: 'Select your food service and begin menu planning', category: 'catering', dueDate: '', completed: false, priority: 'medium', notes: '' },
+  { id: uuidv4(), title: 'Shop for wedding attire', description: 'Start looking for the perfect dress or suit', category: 'attire', dueDate: '', completed: false, priority: 'high', notes: '' },
+  { id: uuidv4(), title: 'Select wedding party', description: 'Ask your closest friends to be part of your day', category: 'other', dueDate: '', completed: false, priority: 'medium', notes: '' },
+  { id: uuidv4(), title: 'Create wedding website', description: 'Build a central hub for guest information', category: 'other', dueDate: '', completed: false, priority: 'low', notes: '' },
+
+  // 6-8 Months Before
+  { id: uuidv4(), title: 'Order save-the-dates', description: 'Design and send your initial announcement', category: 'invitations', dueDate: '', completed: false, priority: 'medium', notes: '' },
+  { id: uuidv4(), title: 'Book florist', description: 'Design your floral arrangements and book a florist', category: 'flowers', dueDate: '', completed: false, priority: 'medium', notes: '' },
+  { id: uuidv4(), title: 'Arrange music & entertainment', description: 'Book your DJ, band, or ceremony musicians', category: 'music', dueDate: '', completed: false, priority: 'medium', notes: '' },
+  { id: uuidv4(), title: 'Book hotel blocks', description: 'Reserve rooms for out-of-town guests', category: 'other', dueDate: '', completed: false, priority: 'low', notes: '' },
+  { id: uuidv4(), title: 'Register for gifts', description: 'Choose items for your wedding registry', category: 'other', dueDate: '', completed: false, priority: 'low', notes: '' },
+
+  // 4-5 Months Before
+  { id: uuidv4(), title: 'Order wedding cake', description: 'Attend tastings and choose your cake design', category: 'catering', dueDate: '', completed: false, priority: 'low', notes: '' },
+  { id: uuidv4(), title: 'Book transportation', description: 'Arrange limos, shuttles, or getaway cars', category: 'transportation', dueDate: '', completed: false, priority: 'low', notes: '' },
+  { id: uuidv4(), title: 'Purchase wedding rings', description: 'Select and order your wedding bands', category: 'attire', dueDate: '', completed: false, priority: 'medium', notes: '' },
+  { id: uuidv4(), title: 'Book hair & makeup artists', description: 'Schedule trials and secure your glam team', category: 'other', dueDate: '', completed: false, priority: 'medium', notes: '' },
+
+  // 2-3 Months Before
+  { id: uuidv4(), title: 'Mail formal invitations', description: 'Send out your invitations and track RSVPs', category: 'invitations', dueDate: '', completed: false, priority: 'high', notes: '' },
+  { id: uuidv4(), title: 'Order wedding favors', description: 'Choose small gifts for your guests', category: 'other', dueDate: '', completed: false, priority: 'low', notes: '' },
+  { id: uuidv4(), title: 'Apply for marriage license', description: 'Check local seasonal requirements for the license', category: 'other', dueDate: '', completed: false, priority: 'high', notes: '' },
+
+  // 1 Month Before
+  { id: uuidv4(), title: 'Finalize seating chart', description: 'Assign guests to tables for the reception', category: 'other', dueDate: '', completed: false, priority: 'medium', notes: '' },
+  { id: uuidv4(), title: 'Write wedding vows', description: 'Personalize your ceremony with your own words', category: 'other', dueDate: '', completed: false, priority: 'high', notes: '' },
+  { id: uuidv4(), title: 'Confirm details with vendors', description: 'Double-check times and requirements with everyone', category: 'other', dueDate: '', completed: false, priority: 'medium', notes: '' },
+  { id: uuidv4(), title: 'Organize rehearsal dinner', description: 'Finalize counts and details for the rehearsal', category: 'other', dueDate: '', completed: false, priority: 'medium', notes: '' },
 ]
+
 
 const defaultBudget: BudgetItem[] = [
   // Venue & Catering
@@ -253,29 +294,98 @@ export const useWeddingStore = create<WeddingState>()(
 
       // Checklist
       checklist: defaultChecklist,
+      setChecklist: (checklist) => set({ checklist }),
       addChecklistItem: (item) =>
-        set((state) => ({
-          checklist: [...state.checklist, { ...item, id: uuidv4() }]
-        })),
+        set((state) => {
+          const newItem = { ...item, id: uuidv4() }
+          const weddingId = state.wedding.id
+
+          if (state.user && weddingId) {
+            supabase
+              .from('checklist_items')
+              .insert({
+                id: newItem.id,
+                wedding_id: weddingId,
+                title: newItem.title,
+                description: newItem.description,
+                category: newItem.category,
+                due_date: newItem.dueDate || null,
+                completed: newItem.completed,
+                priority: newItem.priority
+              })
+              .then(({ error }) => {
+                if (error) console.error('Error adding checklist item to Supabase:', error)
+              })
+          }
+
+          return { checklist: [...state.checklist, newItem] }
+        }),
       updateChecklistItem: (id, updates) =>
-        set((state) => ({
-          checklist: state.checklist.map((item) =>
+        set((state) => {
+          const newChecklist = state.checklist.map((item) =>
             item.id === id ? { ...item, ...updates } : item
           )
-        })),
+
+          if (state.user) {
+            const dbUpdates: any = {}
+            if (updates.title !== undefined) dbUpdates.title = updates.title
+            if (updates.description !== undefined) dbUpdates.description = updates.description
+            if (updates.category !== undefined) dbUpdates.category = updates.category
+            if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate || null
+            if (updates.completed !== undefined) dbUpdates.completed = updates.completed
+            if (updates.priority !== undefined) dbUpdates.priority = updates.priority
+
+            supabase
+              .from('checklist_items')
+              .update(dbUpdates)
+              .eq('id', id)
+              .then(({ error }) => {
+                if (error) console.error('Error updating checklist item in Supabase:', error)
+              })
+          }
+
+          return { checklist: newChecklist }
+        }),
       deleteChecklistItem: (id) =>
-        set((state) => ({
-          checklist: state.checklist.filter((item) => item.id !== id)
-        })),
+        set((state) => {
+          if (state.user) {
+            supabase
+              .from('checklist_items')
+              .delete()
+              .eq('id', id)
+              .then(({ error }) => {
+                if (error) console.error('Error deleting checklist item from Supabase:', error)
+              })
+          }
+          return { checklist: state.checklist.filter((item) => item.id !== id) }
+        }),
       toggleChecklistItem: (id) =>
-        set((state) => ({
-          checklist: state.checklist.map((item) =>
-            item.id === id ? { ...item, completed: !item.completed } : item
-          )
-        })),
+        set((state) => {
+          const item = state.checklist.find(i => i.id === id)
+          if (!item) return state
+
+          const newCompleted = !item.completed
+
+          if (state.user) {
+            supabase
+              .from('checklist_items')
+              .update({ completed: newCompleted })
+              .eq('id', id)
+              .then(({ error }) => {
+                if (error) console.error('Error toggling checklist item in Supabase:', error)
+              })
+          }
+
+          return {
+            checklist: state.checklist.map((item) =>
+              item.id === id ? { ...item, completed: newCompleted } : item
+            )
+          }
+        }),
 
       // Budget
       budgetItems: defaultBudget,
+      setBudgetItems: (budgetItems) => set({ budgetItems }),
       addBudgetItem: (item) =>
         set((state) => ({
           budgetItems: [...state.budgetItems, { ...item, id: uuidv4() }]
@@ -293,6 +403,7 @@ export const useWeddingStore = create<WeddingState>()(
 
       // Guests
       guests: [],
+      setGuests: (guests) => set({ guests }),
       addGuest: (guest) =>
         set((state) => ({
           guests: [...state.guests, { ...guest, id: uuidv4() }]
@@ -315,20 +426,39 @@ export const useWeddingStore = create<WeddingState>()(
           ]
         })),
       updateGuestCommunication: (id, type) =>
-        set((state) => ({
-          guests: state.guests.map((guest) =>
-            guest.id === id
-              ? {
-                ...guest,
-                [type === 'saveTheDate' ? 'saveTheDateSent' : 'reminderSent']: true,
-                lastCommunicationAt: new Date().toISOString()
-              }
-              : guest
-          )
-        })),
+        set((state) => {
+          const now = new Date().toISOString()
+          const updates = {
+            [type === 'saveTheDate' ? 'save_the_date_sent' : 'reminder_sent']: true,
+            last_communication_at: now
+          }
+
+          if (state.user) {
+            supabase
+              .from('guests')
+              .update(updates)
+              .eq('id', id)
+              .then(({ error }) => {
+                if (error) console.error('Error updating guest communication in Supabase:', error)
+              })
+          }
+
+          return {
+            guests: state.guests.map((guest) =>
+              guest.id === id
+                ? {
+                  ...guest,
+                  [type === 'saveTheDate' ? 'saveTheDateSent' : 'reminderSent']: true,
+                  lastCommunicationAt: now
+                }
+                : guest
+            )
+          }
+        }),
 
       // Vendors
       vendors: [],
+      setVendors: (vendors) => set({ vendors }),
       addVendor: (vendor) =>
         set((state) => {
           const newVendorId = uuidv4()
@@ -457,33 +587,182 @@ export const useWeddingStore = create<WeddingState>()(
         set((state) => ({
           timelineEvents: [...state.timelineEvents, { ...event, id: uuidv4() }]
         })),
-      updateTimelineEvent: (id, updates) =>
-        set((state) => ({
-          timelineEvents: state.timelineEvents.map((event) =>
+      updateTimelineEvent: (id, updates, autoShift = false) =>
+        set((state) => {
+          const oldEvent = state.timelineEvents.find(e => e.id === id)
+          if (!oldEvent) return state
+
+          // Helper to convert time string to minutes
+          const toMins = (t: string) => {
+            const [h, m] = t.split(':').map(Number)
+            return h * 60 + m
+          }
+
+          // Helper to convert minutes to time string
+          const fromMins = (m: number) => {
+            const hh = Math.floor(m / 60).toString().padStart(2, '0')
+            const mm = (m % 60).toString().padStart(2, '0')
+            return `${hh}:${mm}`
+          }
+
+          let newEvents = state.timelineEvents.map((event) =>
             event.id === id ? { ...event, ...updates } : event
           )
-        })),
+
+          if (autoShift) {
+            // Sort events by startTime to process them in chronological order
+            // We only need to shift events that start at or after the modified event
+            newEvents.sort((a, b) => toMins(a.startTime) - toMins(b.startTime))
+
+            const updatedIndex = newEvents.findIndex(e => e.id === id)
+
+            // Iterate forward from the updated event and push subsequent events if they overlap
+            for (let i = updatedIndex; i < newEvents.length - 1; i++) {
+              const current = newEvents[i]
+              const next = newEvents[i + 1]
+
+              const currentEnd = toMins(current.endTime)
+              const nextStart = toMins(next.startTime)
+
+              if (currentEnd > nextStart) {
+                const duration = toMins(next.endTime) - nextStart
+                const newNextStart = currentEnd
+                const newNextEnd = newNextStart + duration
+
+                newEvents[i + 1] = {
+                  ...next,
+                  startTime: fromMins(newNextStart),
+                  endTime: fromMins(newNextEnd)
+                }
+              }
+            }
+          }
+
+          return { timelineEvents: newEvents }
+        }),
       deleteTimelineEvent: (id) =>
         set((state) => ({
           timelineEvents: state.timelineEvents.filter((event) => event.id !== id)
         })),
+      shiftTimelineEvents: (id, minutes) =>
+        set((state) => {
+          const targetEvent = state.timelineEvents.find(e => e.id === id)
+          if (!targetEvent) return state
+
+          return {
+            timelineEvents: state.timelineEvents.map(event => {
+              if (event.startTime >= targetEvent.startTime) {
+                const [h, m] = event.startTime.split(':').map(Number)
+                const [eh, em] = event.endTime.split(':').map(Number)
+
+                const formatTimeVal = (mins: number) => {
+                  const hh = Math.floor(mins / 60).toString().padStart(2, '0')
+                  const mm = (mins % 60).toString().padStart(2, '0')
+                  return `${hh}:${mm}`
+                }
+
+                return {
+                  ...event,
+                  startTime: formatTimeVal(h * 60 + m + minutes),
+                  endTime: formatTimeVal(eh * 60 + em + minutes)
+                }
+              }
+              return event
+            })
+          }
+        }),
+      applyTimelineTemplate: () => {
+        const state = get()
+        const start = state.wedding.timelineStartTime || '08:00'
+        const [baseH, baseM] = start.split(':').map(Number)
+
+        const templateEvents = [
+          { title: 'Hair & Makeup', startOffset: 0, duration: 180, color: '#d4a5a5' },
+          { title: 'Photography - Getting Ready', startOffset: 120, duration: 120, color: '#c97f66' },
+          { title: 'Ceremony', startOffset: 360, duration: 60, color: '#d4af37' },
+          { title: 'Cocktail Hour', startOffset: 420, duration: 60, color: '#9dc183' },
+          { title: 'Reception', startOffset: 480, duration: 60, color: '#f7e7ce' },
+          { title: 'Dinner', startOffset: 540, duration: 120, color: '#c97f66' },
+          { title: 'First Dance', startOffset: 660, duration: 15, color: '#d4af37' },
+          { title: 'Dancing', startOffset: 675, duration: 165, color: '#9dc183' },
+          { title: 'Send Off', startOffset: 840, duration: 30, color: '#d4a5a5' },
+        ]
+
+        const formatTimeVal = (mins: number) => {
+          const hh = Math.floor(mins / 60).toString().padStart(2, '0')
+          const mm = (mins % 60).toString().padStart(2, '0')
+          return `${hh}:${mm}`
+        }
+
+        const newEvents = templateEvents.map(event => ({
+          id: uuidv4(),
+          title: event.title,
+          startTime: formatTimeVal(baseH * 60 + baseM + event.startOffset),
+          endTime: formatTimeVal(baseH * 60 + baseM + event.startOffset + event.duration),
+          color: event.color,
+          location: state.wedding.venue || '',
+          description: '',
+          vendors: []
+        }))
+
+        set({ timelineEvents: newEvents })
+      },
 
       // Photos
       photos: [],
-      addPhoto: (photo) =>
+      setPhotos: (photos) => set({ photos }),
+      addPhoto: async (photo) => {
+        const id = uuidv4()
+        const newPhoto = { ...photo, id }
+
         set((state) => ({
-          photos: [...state.photos, { ...photo, id: uuidv4() }]
-        })),
-      deletePhoto: (id) =>
+          photos: [...state.photos, newPhoto]
+        }))
+
+        const state = get()
+        if (state.user) {
+          const { error } = await supabase
+            .from('photos')
+            .insert({
+              id,
+              wedding_id: state.wedding.id,
+              url: photo.url,
+              caption: photo.caption,
+              category: photo.tags[0] || 'general',
+              is_favorite: false
+            })
+          if (error) console.error('Error adding photo to Supabase:', error)
+        }
+      },
+      deletePhoto: async (id) => {
         set((state) => ({
           photos: state.photos.filter((photo) => photo.id !== id)
-        })),
-      likePhoto: (id) =>
+        }))
+
+        const state = get()
+        if (state.user) {
+          const photo = state.photos.find(p => p.id === id)
+          if (photo) {
+            // If it's a Supabase storage URL, we might want to delete the file too
+            // For now just delete the record
+            const { error } = await supabase
+              .from('photos')
+              .delete()
+              .eq('id', id)
+            if (error) console.error('Error deleting photo from Supabase:', error)
+          }
+        }
+      },
+      likePhoto: async (id) => {
         set((state) => ({
           photos: state.photos.map((photo) =>
             photo.id === id ? { ...photo, likes: photo.likes + 1 } : photo
           )
-        })),
+        }))
+
+        // Note: The schema doesn't have a likes count yet, we might need to add it
+        // For now this stays local only if not in schema
+      },
 
       // Website
       websiteSettings: defaultWebsiteSettings,
@@ -506,10 +785,24 @@ export const useWeddingStore = create<WeddingState>()(
             appSettings: { ...state.appSettings, darkMode: enabled }
           }
         }),
-      updateAppSettings: (updates) =>
-        set((state) => ({
-          appSettings: { ...state.appSettings, ...updates }
-        })),
+      updateAppSettings: (updates) => {
+        set((state) => {
+          const newSettings = { ...state.appSettings, ...updates }
+
+          // Sync to Supabase if user is logged in
+          if (state.user) {
+            supabase
+              .from('profiles')
+              .update({ app_settings: newSettings })
+              .eq('id', state.user.id)
+              .then(({ error }) => {
+                if (error) console.error('Error syncing settings to Supabase:', error)
+              })
+          }
+
+          return { appSettings: newSettings }
+        })
+      },
 
       // Notifications
       notifications: [],
@@ -584,54 +877,158 @@ export const useWeddingStore = create<WeddingState>()(
           budgetItems: defaultBudget
         })),
 
+      // Storage
+      uploadFile: async (bucket, file, path) => {
+        const state = get()
+        if (!state.user) return null
+
+        let fileToUpload = file
+
+        // Automatically compress if it's an image
+        if (file.type.startsWith('image/')) {
+          try {
+            const compressedDataUrl = await fileToCompressedDataUrl(file, 1600, 1600, 0.8)
+            fileToUpload = dataUrlToFile(compressedDataUrl, file.name)
+          } catch (err) {
+            console.error('Compression failed, uploading original:', err)
+          }
+        }
+
+        const fileExt = fileToUpload.name.split('.').pop()
+        const fileName = `${uuidv4()}.${fileExt}`
+        const filePath = path ? `${path}/${fileName}` : fileName
+
+        const { error } = await supabase.storage
+          .from(bucket)
+          .upload(filePath, fileToUpload)
+
+        if (error) {
+          console.error('Error uploading file:', error)
+          return null
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(filePath)
+
+        return publicUrl
+      },
+
       // Inspiration Boards
       inspirationBoards: [],
-      addInspirationBoard: (board: Omit<InspirationBoard, 'id' | 'createdAt' | 'updatedAt' | 'images'>) =>
+      setInspirationBoards: (inspirationBoards) => set({ inspirationBoards }),
+      addInspirationBoard: async (board) => {
+        const id = uuidv4()
+        const now = new Date().toISOString()
+        const newBoard = {
+          ...board,
+          id,
+          images: [],
+          createdAt: now,
+          updatedAt: now
+        }
+
         set((state) => ({
-          inspirationBoards: [
-            ...state.inspirationBoards,
-            {
-              ...board,
-              id: uuidv4(),
-              images: [],
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            }
-          ]
-        })),
-      updateInspirationBoard: (id: string, updates: Partial<InspirationBoard>) =>
+          inspirationBoards: [...state.inspirationBoards, newBoard]
+        }))
+
+        const state = get()
+        if (state.user) {
+          const { error } = await supabase
+            .from('inspiration_boards')
+            .insert({
+              id,
+              wedding_id: state.wedding.id,
+              name: board.name,
+              category: board.category,
+              description: board.description
+            })
+          if (error) console.error('Error adding inspiration board to Supabase:', error)
+        }
+      },
+      updateInspirationBoard: async (id, updates) => {
+        const now = new Date().toISOString()
         set((state) => ({
           inspirationBoards: state.inspirationBoards.map((board) =>
             board.id === id
-              ? { ...board, ...updates, updatedAt: new Date().toISOString() }
+              ? { ...board, ...updates, updatedAt: now }
               : board
           )
-        })),
-      deleteInspirationBoard: (id: string) =>
+        }))
+
+        const state = get()
+        if (state.user) {
+          const { error } = await supabase
+            .from('inspiration_boards')
+            .update({
+              name: updates.name,
+              category: updates.category,
+              description: updates.description,
+              cover_image: updates.coverImage,
+              updated_at: now
+            })
+            .eq('id', id)
+          if (error) console.error('Error updating inspiration board in Supabase:', error)
+        }
+      },
+      deleteInspirationBoard: async (id) => {
         set((state) => ({
           inspirationBoards: state.inspirationBoards.filter((board) => board.id !== id)
-        })),
-      addImageToBoard: (boardId: string, image: Omit<InspirationImage, 'id' | 'addedAt'>) =>
+        }))
+
+        const state = get()
+        if (state.user) {
+          const { error } = await supabase
+            .from('inspiration_boards')
+            .delete()
+            .eq('id', id)
+          if (error) console.error('Error deleting inspiration board from Supabase:', error)
+        }
+      },
+      addImageToBoard: async (boardId, image) => {
+        const id = uuidv4()
+        const now = new Date().toISOString()
+        const newImage = { ...image, id, addedAt: now }
+
         set((state) => ({
           inspirationBoards: state.inspirationBoards.map((board) =>
             board.id === boardId
               ? {
                 ...board,
-                images: [
-                  ...board.images,
-                  {
-                    ...image,
-                    id: uuidv4(),
-                    addedAt: new Date().toISOString()
-                  }
-                ],
+                images: [...board.images, newImage],
                 coverImage: board.coverImage || image.url,
-                updatedAt: new Date().toISOString()
+                updatedAt: now
               }
               : board
           )
-        })),
-      updateBoardImage: (boardId: string, imageId: string, updates: Partial<InspirationImage>) =>
+        }))
+
+        const state = get()
+        if (state.user) {
+          const { error } = await supabase
+            .from('inspiration_images')
+            .insert({
+              id,
+              board_id: boardId,
+              url: image.url,
+              source: image.source,
+              notes: image.notes,
+              tags: image.tags
+            })
+          if (error) console.error('Error adding inspiration image to Supabase:', error)
+
+          // Update cover image if none exists
+          const board = state.inspirationBoards.find(b => b.id === boardId)
+          if (board && !board.coverImage) {
+            await supabase
+              .from('inspiration_boards')
+              .update({ cover_image: image.url, updated_at: now })
+              .eq('id', boardId)
+          }
+        }
+      },
+      updateBoardImage: async (boardId, imageId, updates) => {
+        const now = new Date().toISOString()
         set((state) => ({
           inspirationBoards: state.inspirationBoards.map((board) =>
             board.id === boardId
@@ -640,26 +1037,104 @@ export const useWeddingStore = create<WeddingState>()(
                 images: board.images.map((img) =>
                   img.id === imageId ? { ...img, ...updates } : img
                 ),
-                updatedAt: new Date().toISOString()
+                updatedAt: now
               }
               : board
           )
-        })),
-      removeImageFromBoard: (boardId: string, imageId: string) =>
-        set((state) => ({
-          inspirationBoards: state.inspirationBoards.map((board) => {
-            if (board.id !== boardId) return board
-            const newImages = board.images.filter((img) => img.id !== imageId)
-            return {
-              ...board,
-              images: newImages,
-              coverImage: board.coverImage === board.images.find(i => i.id === imageId)?.url
-                ? newImages[0]?.url || ''
-                : board.coverImage,
-              updatedAt: new Date().toISOString()
-            }
-          })
         }))
+
+        const state = get()
+        if (state.user) {
+          const { error } = await supabase
+            .from('inspiration_images')
+            .update({
+              notes: updates.notes,
+              source: updates.source,
+              tags: updates.tags
+            })
+            .eq('id', imageId)
+          if (error) console.error('Error updating inspiration image in Supabase:', error)
+        }
+      },
+      removeImageFromBoard: async (boardId, imageId) => {
+        const now = new Date().toISOString()
+        let removedImageUrl = ''
+
+        set((state) => {
+          const board = state.inspirationBoards.find(b => b.id === boardId)
+          if (!board) return state
+
+          const imageToRemove = board.images.find(i => i.id === imageId)
+          removedImageUrl = imageToRemove?.url || ''
+
+          const newImages = board.images.filter((img) => img.id !== imageId)
+          const newCoverImage = board.coverImage === removedImageUrl
+            ? newImages[0]?.url || ''
+            : board.coverImage
+
+          return {
+            inspirationBoards: state.inspirationBoards.map((b) =>
+              b.id === boardId
+                ? {
+                  ...b,
+                  images: newImages,
+                  coverImage: newCoverImage,
+                  updatedAt: now
+                }
+                : b
+            )
+          }
+        })
+
+        const state = get()
+        if (state.user) {
+          const { error } = await supabase
+            .from('inspiration_images')
+            .delete()
+            .eq('id', imageId)
+          if (error) console.error('Error removing inspiration image from Supabase:', error)
+
+          // Update cover image if it was changed
+          const board = state.inspirationBoards.find(b => b.id === boardId)
+          if (board && board.coverImage !== removedImageUrl) {
+            await supabase
+              .from('inspiration_boards')
+              .update({ cover_image: board.coverImage, updated_at: now })
+              .eq('id', boardId)
+          }
+        }
+      },
+      reorderBoardImages: async (boardId, imageIds) => {
+        const now = new Date().toISOString()
+
+        set((state) => {
+          const board = state.inspirationBoards.find(b => b.id === boardId)
+          if (!board) return state
+
+          // Create a map for quick lookup
+          const imageMap = new Map(board.images.map(img => [img.id, img]))
+
+          // Reorder images based on the new order
+          const reorderedImages = imageIds
+            .map(id => imageMap.get(id))
+            .filter((img): img is InspirationImage => img !== undefined)
+
+          return {
+            inspirationBoards: state.inspirationBoards.map((b) =>
+              b.id === boardId
+                ? {
+                  ...b,
+                  images: reorderedImages,
+                  updatedAt: now
+                }
+                : b
+            )
+          }
+        })
+
+        // Note: Supabase doesn't have an order column for inspiration_images currently
+        // If ordering persistence is needed, the schema would need to be updated
+      }
     }),
     {
       name: 'wedding-planner-storage'

@@ -19,6 +19,8 @@ export interface WeddingDetails {
   receptionLink?: string
   receptionTime?: string
   sameLocation?: boolean
+  timelineStartTime?: string // Default start of wedding day (e.g. "08:00")
+  timelineEndTime?: string // Default end of wedding day (e.g. "23:00")
 }
 
 export interface ChecklistItem {
@@ -188,6 +190,9 @@ export interface AppSettings {
   darkMode: boolean
   notifications: NotificationPreferences
   enabledModules: string[]
+  bridePhoto?: string // URL for bride photo used in AI dress try-on
+  geminiApiKey?: string // Google Gemini API key for AI features
+  vtonApiUrl?: string // Optional custom API for FASHN VTON
 }
 
 export interface AuthUser {
@@ -235,6 +240,7 @@ export interface InspirationImage {
   notes?: string
   tags: string[]
   addedAt: string
+  tryOnUrl?: string // AI-generated try-on image URL
 }
 
 export interface InspirationBoard {

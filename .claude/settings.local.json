@@ -5,7 +5,8 @@
       "Bash(npm install:*)",
       "Bash(wc:*)",
       "Bash(tree:*)",
-      "Bash(timeout 10 npm run dev:*)"
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

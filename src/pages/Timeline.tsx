@@ -27,7 +27,7 @@ const defaultEvents = [
 ]
 
 export default function Timeline() {
-  const { wedding, timelineEvents, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, vendors } = useWeddingStore()
+  const { wedding, setWedding, timelineEvents, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, applyTimelineTemplate, vendors } = useWeddingStore()
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null)
   const [showTemplateModal, setShowTemplateModal] = useState(false)
@@ -39,7 +39,8 @@ export default function Timeline() {
     location: '',
     description: '',
     vendors: [] as string[],
-    color: '#c97f66'
+    color: '#c97f66',
+    autoShift: true
   })
 
   const sortedEvents = [...timelineEvents].sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -47,7 +48,7 @@ export default function Timeline() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (editingEvent) {
-      updateTimelineEvent(editingEvent.id, formData)
+      updateTimelineEvent(editingEvent.id, formData, formData.autoShift)
     } else {
       addTimelineEvent(formData)
     }
@@ -57,7 +58,7 @@ export default function Timeline() {
   const resetForm = () => {
     setFormData({
       title: '', startTime: '', endTime: '', location: '',
-      description: '', vendors: [], color: '#c97f66'
+      description: '', vendors: [], color: '#c97f66', autoShift: true
     })
     setShowAddModal(false)
     setEditingEvent(null)
@@ -72,20 +73,14 @@ export default function Timeline() {
       location: event.location,
       description: event.description,
       vendors: event.vendors,
-      color: event.color
+      color: event.color,
+      autoShift: true
     })
     setShowAddModal(true)
   }
 
   const applyTemplate = () => {
-    defaultEvents.forEach(event => {
-      addTimelineEvent({
-        ...event,
-        location: wedding.venue || '',
-        description: '',
-        vendors: []
-      })
-    })
+    applyTimelineTemplate()
     setShowTemplateModal(false)
   }
 
@@ -123,6 +118,27 @@ export default function Timeline() {
           {wedding.weddingDate && (
             <p className="text-gray-500">{format(new Date(wedding.weddingDate), 'EEEE, MMMM d, yyyy')}</p>
           )}
+          <div className="flex items-center gap-4 mt-4 p-2 bg-gray-50 rounded-lg border border-gray-100 w-fit">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-400 uppercase">Day Start:</span>
+              <input
+                type="time"
+                value={wedding.timelineStartTime || '08:00'}
+                onChange={(e) => setWedding({ timelineStartTime: e.target.value })}
+                className="bg-transparent text-sm font-medium text-gray-600 focus:outline-none"
+              />
+            </div>
+            <div className="w-px h-4 bg-gray-200" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-400 uppercase">Day End:</span>
+              <input
+                type="time"
+                value={wedding.timelineEndTime || '23:00'}
+                onChange={(e) => setWedding({ timelineEndTime: e.target.value })}
+                className="bg-transparent text-sm font-medium text-gray-600 focus:outline-none"
+              />
+            </div>
+          </div>
         </div>
         <div className="flex gap-3">
           {timelineEvents.length === 0 && (
@@ -317,6 +333,20 @@ export default function Timeline() {
                       </label>
                     ))}
                   </div>
+                </div>
+              )}
+              {editingEvent && (
+                <div className="flex items-center gap-2 p-3 bg-primary-50 rounded-lg border border-primary-100">
+                  <input
+                    type="checkbox"
+                    id="autoShift"
+                    checked={formData.autoShift}
+                    onChange={(e) => setFormData({ ...formData, autoShift: e.target.checked })}
+                    className="rounded text-primary-600 focus:ring-primary-500"
+                  />
+                  <label htmlFor="autoShift" className="text-sm font-medium text-primary-800">
+                    Automatically shift subsequent events
+                  </label>
                 </div>
               )}
               <div className="flex gap-3 justify-end pt-4">

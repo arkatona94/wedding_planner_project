@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useWeddingStore } from '../store/weddingStore'
+import { supabase } from '../lib/supabase'
 import { QRCodeSVG } from 'qrcode.react'
-import { format } from 'date-fns'
 
 export default function Communication() {
     const wedding = useWeddingStore((state) => state.wedding)
@@ -36,17 +36,64 @@ export default function Communication() {
         ].join('\n')
     }, [wedding])
 
-    const handleSend = (type: 'saveTheDate' | 'reminder') => {
-        setSendingStatus(`Sending ${type} to ${selectedGuests.length} guests...`)
+    const handleSend = async (type: 'saveTheDate' | 'reminder') => {
+        const channel = type === 'reminder' ? 'sms' : 'email'
+        setSendingStatus(`Sending ${type} (${channel}) to ${selectedGuests.length} guests...`)
+        let successCount = 0
+        let failCount = 0
 
-        // Simulate API call and update store
-        setTimeout(() => {
-            selectedGuests.forEach(id => updateGuestCommunication(id, type))
-            setSendingStatus(`Successfully sent ${type}!`)
-            setSelectedGuests([])
-            setTimeout(() => setSendingStatus(null), 3000)
-        }, 1500)
+        for (const id of selectedGuests) {
+            const guest = guests.find(g => g.id === id)
+            const recipient = channel === 'email' ? guest?.email : guest?.phone
+
+            if (!guest || !recipient) {
+                console.warn(`Skipping ${guest?.firstName || 'Unknown'}: No ${channel} provided.`)
+                failCount++
+                continue
+            }
+
+            try {
+                const { error } = await supabase.functions.invoke('send-notification', {
+                    body: {
+                        weddingId: wedding.id,
+                        guestId: id,
+                        type,
+                        channel,
+                        recipient,
+                        subject: type === 'saveTheDate' ? `Save the Date: ${wedding.partner1Name} & ${wedding.partner2Name}` : `Reminder: Wedding Details`,
+                        text: type === 'reminder'
+                            ? `Hi ${guest.firstName}! Just a reminder for ${wedding.partner1Name} & ${wedding.partner2Name}'s wedding on ${wedding.weddingDate}. RSVP: ${window.location.origin}/rsvp/${wedding.id}`
+                            : undefined,
+                        html: type === 'saveTheDate' ? `
+                            <div style="font-family: serif; padding: 20px; text-align: center;">
+                                <h1>${wedding.partner1Name} & ${wedding.partner2Name}</h1>
+                                <p>We're getting married!</p>
+                                <p><strong>Date:</strong> ${wedding.weddingDate}</p>
+                                <p><strong>Location:</strong> ${wedding.ceremonyVenue}</p>
+                                <a href="${window.location.origin}/rsvp/${wedding.id}" 
+                                   style="display: inline-block; padding: 10px 20px; background: #c97f66; color: white; text-decoration: none; border-radius: 5px;">
+                                   RSVP Here
+                                </a>
+                            </div>
+                        ` : undefined
+                    }
+                })
+
+                if (error) throw error
+
+                updateGuestCommunication(id, type)
+                successCount++
+            } catch (err) {
+                console.error(`Failed to send to ${guest.firstName}:`, err)
+                failCount++
+            }
+        }
+
+        setSendingStatus(`Complete! Sent: ${successCount}, Failed: ${failCount}`)
+        setSelectedGuests([])
+        setTimeout(() => setSendingStatus(null), 5000)
     }
+
 
     const toggleGuest = (id: string) => {
         setSelectedGuests(prev =>
@@ -66,8 +113,8 @@ export default function Communication() {
                 <button
                     onClick={() => setActiveTab('details')}
                     className={`px-6 py-3 font-medium transition-colors border-b-2 ${activeTab === 'details'
-                            ? 'border-primary-600 text-primary-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        ? 'border-primary-600 text-primary-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     Event Details
@@ -75,8 +122,8 @@ export default function Communication() {
                 <button
                     onClick={() => setActiveTab('guests')}
                     className={`px-6 py-3 font-medium transition-colors border-b-2 ${activeTab === 'guests'
-                            ? 'border-primary-600 text-primary-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        ? 'border-primary-600 text-primary-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     Guest Outreach
@@ -84,8 +131,8 @@ export default function Communication() {
                 <button
                     onClick={() => setActiveTab('qr')}
                     className={`px-6 py-3 font-medium transition-colors border-b-2 ${activeTab === 'qr'
-                            ? 'border-primary-600 text-primary-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        ? 'border-primary-600 text-primary-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     QR Code

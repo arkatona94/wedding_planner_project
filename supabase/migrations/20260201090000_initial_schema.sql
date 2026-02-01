@@ -1,19 +1,6 @@
-import pg8000
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-DB_PASSWORD = os.getenv("SUPABASE_DB_PASSWORD")
-PROJECT_ID = "xcjelqmifskowxxdtqrh"  # New project provided by user
-DB_HOST = f"db.{PROJECT_ID}.supabase.co"
-DB_USER = "postgres"
-DB_NAME = "postgres"
-DB_PORT = 6543
-
-SQL_SCHEMA = """
 -- EverAfter Wedding Planner Database Schema
+-- Last Updated: 2026-02-01
+-- Initial Migration
 
 -- 1. Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -24,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     email TEXT,
     full_name TEXT,
     avatar_url TEXT,
-    app_settings JSONB DEFAULT '{"enabledModules": [], "darkMode": false}'::jsonb,
+    app_settings JSONB DEFAULT '{"enabledModules": ["dashboard", "checklist", "budget"], "darkMode": false}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -71,7 +58,7 @@ CREATE TABLE IF NOT EXISTS public.budget_items (
     paid_amount NUMERIC DEFAULT 0,
     due_date DATE,
     notes TEXT,
-    vendor_id UUID, -- Optional link
+    vendor_id UUID,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -90,7 +77,7 @@ CREATE TABLE IF NOT EXISTS public.guests (
     plus_one BOOLEAN DEFAULT FALSE,
     plus_one_name TEXT,
     "group" TEXT,
-    table_assignment UUID, -- Optional link to tables
+    table_assignment UUID,
     is_bride_side BOOLEAN DEFAULT FALSE,
     is_groom_side BOOLEAN DEFAULT FALSE,
     address JSONB DEFAULT '{}'::jsonb,
@@ -175,7 +162,7 @@ CREATE TABLE IF NOT EXISTS public.photos (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ROW LEVEL SECURITY (RLS) policies
+-- ROW LEVEL SECURITY (RLS)
 
 -- Enable RLS on all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -223,7 +210,39 @@ USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid())
 CREATE POLICY "Users can manage photos" ON public.photos FOR ALL 
 USING (wedding_id IN (SELECT id FROM public.weddings WHERE user_id = auth.uid()));
 
--- Functions and Triggers for updated_at
+-- FUNCTIONS & TRIGGERS
+
+-- Trigger to create profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, app_settings)
+  VALUES (
+    NEW.id, 
+    NEW.email, 
+    NEW.raw_user_meta_data->>'full_name', 
+    jsonb_build_object(
+        'enabledModules', COALESCE(NEW.raw_user_meta_data->'enabled_modules', '["dashboard", "checklist", "budget"]'::jsonb),
+        'darkMode', false
+    )
+  );
+  
+  -- Create a default wedding for the new user
+  INSERT INTO public.weddings (user_id, partner1_name, partner2_name)
+  VALUES (NEW.id, NEW.raw_user_meta_data->>'full_name', 'Partner');
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Remove existing trigger if it exists
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Trigger for updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -241,59 +260,3 @@ CREATE TRIGGER update_vendors_updated_at BEFORE UPDATE ON public.vendors FOR EAC
 CREATE TRIGGER update_timeline_events_updated_at BEFORE UPDATE ON public.timeline_events FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_seating_tables_updated_at BEFORE UPDATE ON public.seating_tables FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_room_elements_updated_at BEFORE UPDATE ON public.room_elements FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
--- Trigger to create profile on signup
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, full_name, app_settings)
-  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', '{"enabledModules": ["dashboard", "checklist", "budget"], "darkMode": false}'::jsonb);
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Remove existing trigger if it exists to avoid errors on re-run
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
-"""
-
-
-def execute_init():
-    try:
-        print(f"Connecting to {DB_HOST}...")
-        conn = pg8000.connect(
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT,
-            database=DB_NAME,
-            timeout=30,
-        )
-        print("Connected successfully.")
-
-        cursor = conn.cursor()
-
-        # Split SQL into individual statements for better error reporting
-        # Note: This is a simple split, better to use a proper parser if SQL has complex triggers with semicolons
-        # But here we can run the whole block if pg8000 supports it.
-        print("Executing schema...")
-        cursor.execute(SQL_SCHEMA)
-
-        conn.commit()
-        print("Database initialized successfully.")
-
-        cursor.close()
-        conn.close()
-
-    except Exception as e:
-        print(f"Error initializing database: {e}")
-        import traceback
-
-        traceback.print_exc()
-
-
-if __name__ == "__main__":
-    execute_init()

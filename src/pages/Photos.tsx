@@ -6,11 +6,12 @@ import { format } from 'date-fns'
 import type { Photo } from '../types'
 
 export default function Photos() {
-  const { photos, addPhoto, deletePhoto, likePhoto } = useWeddingStore()
+  const { photos, addPhoto, deletePhoto, likePhoto, uploadFile } = useWeddingStore()
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showQRModal, setShowQRModal] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
   const [filter, setFilter] = useState<'all' | 'most-liked'>('all')
+  const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [uploadData, setUploadData] = useState({
@@ -23,28 +24,33 @@ export default function Photos() {
     ? [...photos].sort((a, b) => b.likes - a.likes)
     : [...photos].sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const url = event.target?.result as string
-        addPhoto({
-          url,
-          uploadedBy: uploadData.uploaderName || 'Guest',
-          uploadedAt: new Date().toISOString(),
-          caption: uploadData.caption,
-          likes: 0,
-          tags: uploadData.tags.split(',').map(t => t.trim()).filter(Boolean)
-        })
+    setIsUploading(true)
+    try {
+      for (const file of Array.from(files)) {
+        const url = await uploadFile('photos', file)
+        if (url) {
+          await addPhoto({
+            url,
+            uploadedBy: uploadData.uploaderName || 'Guest',
+            uploadedAt: new Date().toISOString(),
+            caption: uploadData.caption,
+            likes: 0,
+            tags: uploadData.tags.split(',').map(t => t.trim()).filter(Boolean)
+          })
+        }
       }
-      reader.readAsDataURL(file)
-    })
-
-    setShowUploadModal(false)
-    setUploadData({ uploaderName: '', caption: '', tags: '' })
+    } catch (err) {
+      console.error('Photo upload failed:', err)
+      alert('Failed to upload photos. Please check your connection.')
+    } finally {
+      setIsUploading(false)
+      setShowUploadModal(false)
+      setUploadData({ uploaderName: '', caption: '', tags: '' })
+    }
   }
 
   const photoUploadUrl = `${window.location.origin}/upload-photos`
@@ -188,9 +194,18 @@ export default function Photos() {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full btn-primary"
+                  className={`w-full btn-primary ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={isUploading}
                 >
-                  Select Photos
+                  {isUploading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Uploading...
+                    </span>
+                  ) : 'Select Photos'}
                 </button>
               </div>
             </div>

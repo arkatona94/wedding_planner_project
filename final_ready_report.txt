@@ -1,0 +1,18 @@
+[dotenv@17.2.3] injecting env (10) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+--- Database Table Verification ---
+✅ profiles                 : PASSED
+✅ weddings                 : PASSED
+✅ checklist_items          : PASSED
+✅ budget_items             : PASSED
+✅ guests                   : PASSED
+✅ vendors                  : PASSED
+✅ timeline_events          : PASSED
+✅ seating_tables           : PASSED
+✅ room_elements            : PASSED
+✅ photos                   : PASSED
+✅ inspiration_boards       : PASSED
+✅ inspiration_images       : PASSED
+✅ communication_logs       : PASSED
+❌ public_rsvp_submissions  : FAILED (Could not find the table 'public.public_rsvp_submissions' in the schema cache)
+
+🔴 ISSUES FOUND: Some tables are missing or inaccessible.

@@ -48,19 +48,64 @@ export default function Register() {
                 email,
                 password,
                 options: {
-                    data: { full_name: name }
+                    data: {
+                        full_name: name,
+                        enabled_modules: selectedModules
+                    }
                 }
             })
 
             if (signUpError) throw signUpError
 
             if (data.user) {
+                // 1. Set local store user
                 setUser({
                     id: data.user.id,
                     email: data.user.email!,
                     name: name
                 })
                 updateAppSettings({ enabledModules: selectedModules })
+
+                // 2. Create initial wedding record in Supabase
+                // We use a try-catch for the profile/wedding creation in case 
+                // triggers are already handling it or there are RLS issues.
+                try {
+                    // Check if profile exists (might be created by trigger)
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .eq('id', data.user.id)
+                        .single()
+
+                    if (!profile) {
+                        await supabase.from('profiles').insert({
+                            id: data.user.id,
+                            email: data.user.email,
+                            full_name: name,
+                            app_settings: { enabledModules: selectedModules, darkMode: false }
+                        })
+                    }
+
+                    // Create the wedding record
+                    const { error: weddingError } = await supabase
+                        .from('weddings')
+                        .insert({
+                            user_id: data.user.id,
+                            partner1_name: name.split('&')[0]?.trim() || 'Partner 1',
+                            partner2_name: name.split('&')[1]?.trim() || 'Partner 2',
+                            total_budget: 30000,
+                            estimated_guests: 100
+                        })
+                        .select()
+                        .single()
+
+                    if (weddingError) {
+                        console.error('Error creating wedding record:', weddingError)
+                    }
+                } catch (dbErr) {
+                    console.error('Database initialization error during signup:', dbErr)
+                }
+
                 navigate('/')
             }
         } catch (err: any) {
