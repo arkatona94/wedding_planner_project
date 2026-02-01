@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { format } from 'date-fns'
 import type { BudgetItem } from '../types'
+import { exportBudgetPDF } from '../utils/exports'
 
 import venuesData from '../data/venues.json'
 import photographyData from '../data/photography.json'
@@ -140,6 +142,11 @@ export default function Budget() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+            <span>/</span>
+            <span className="text-gray-400">Budget</span>
+          </div>
           <h1 className="text-2xl font-serif text-gray-800">Budget Tracker</h1>
           <p className="text-gray-500">Track your wedding expenses</p>
         </div>
@@ -157,6 +164,20 @@ export default function Budget() {
             title="Ensures all vendors have budget items and updates costs"
           >
             {syncSuccess ? '✅ Synced' : '🔄 Sync Vendors'}
+          </button>
+          <button
+            onClick={() => {
+              const coupleNames = wedding.partner1Name && wedding.partner2Name
+                ? `${wedding.partner1Name} & ${wedding.partner2Name}`
+                : 'Wedding'
+              const weddingDate = wedding.weddingDate
+                ? format(new Date(wedding.weddingDate), 'MMMM d, yyyy')
+                : ''
+              exportBudgetPDF(budgetItems, wedding.totalBudget, coupleNames, weddingDate)
+            }}
+            className="btn-secondary"
+          >
+            Export PDF
           </button>
           <button onClick={() => setShowAddModal(true)} className="btn-primary">+ Add Expense</button>
         </div>

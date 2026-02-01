@@ -63,10 +63,12 @@ export default function MarriageLaws() {
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
             <div className="flex items-center gap-4">
-                <Link to="/" className="text-gray-500 hover:text-primary-600">
-                    ← Back to Dashboard
-                </Link>
                 <div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                        <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+                        <span>/</span>
+                        <span className="text-gray-400">Marriage Laws</span>
+                    </div>
                     <h1 className="text-2xl font-serif text-gray-800">2026 US Marriage Laws</h1>
                     <p className="text-gray-500">Select a state to view legal requirements</p>
                 </div>

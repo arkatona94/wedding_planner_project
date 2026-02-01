@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { format } from 'date-fns'
 
@@ -29,6 +30,11 @@ export default function Website() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+            <span>/</span>
+            <span className="text-gray-400">Website</span>
+          </div>
           <h1 className="text-2xl font-serif text-gray-800">Wedding Website</h1>
           <p className="text-gray-500">Create your personalized wedding website</p>
         </div>
@@ -71,11 +77,10 @@ export default function Website() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === tab
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === tab
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
@@ -92,11 +97,10 @@ export default function Website() {
                 <button
                   key={template.id}
                   onClick={() => updateWebsiteSettings({ template: template.id })}
-                  className={`p-4 rounded-lg border-2 text-left transition-colors ${
-                    websiteSettings.template === template.id
+                  className={`p-4 rounded-lg border-2 text-left transition-colors ${websiteSettings.template === template.id
                       ? 'border-primary-500 bg-primary-50'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <div className="h-24 bg-gray-100 rounded mb-3 flex items-center justify-center text-gray-400">
                     Preview
@@ -115,11 +119,10 @@ export default function Website() {
                 <button
                   key={color.value}
                   onClick={() => updateWebsiteSettings({ primaryColor: color.value })}
-                  className={`w-12 h-12 rounded-full border-4 transition-all ${
-                    websiteSettings.primaryColor === color.value
+                  className={`w-12 h-12 rounded-full border-4 transition-all ${websiteSettings.primaryColor === color.value
                       ? 'border-gray-800 scale-110'
                       : 'border-transparent hover:scale-105'
-                  }`}
+                    }`}
                   style={{ backgroundColor: color.value }}
                   title={color.label}
                 />

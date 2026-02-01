@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { QRCodeSVG } from 'qrcode.react'
 import { format } from 'date-fns'
@@ -52,6 +53,11 @@ export default function Photos() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+            <span>/</span>
+            <span className="text-gray-400">Photos</span>
+          </div>
           <h1 className="text-2xl font-serif text-gray-800">Photo Gallery</h1>
           <p className="text-gray-500">{photos.length} photos shared</p>
         </div>

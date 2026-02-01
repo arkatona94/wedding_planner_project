@@ -1,12 +1,13 @@
 import { useWeddingStore } from '../store/weddingStore'
+import { Link } from 'react-router-dom'
 import { differenceInDays, format } from 'date-fns'
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 
 const CHART_COLORS = ['#c97f66', '#9dc183', '#d4af37', '#d4a5a5', '#b5644d', '#7d4336', '#dba08b', '#f3d9d0']
 const mealOptions = ['Chicken', 'Beef', 'Fish', 'Vegetarian', 'Vegan', 'Kids Meal']
 
 export default function Dashboard() {
-  const { wedding, checklist, budgetItems, guests, vendors, setWedding } = useWeddingStore()
+  const { wedding, checklist, budgetItems, guests, vendors, setWedding, appSettings } = useWeddingStore()
 
   const completedTasks = checklist.filter(item => item.completed).length
   const totalTasks = checklist.length
@@ -148,178 +149,231 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Navigation Panel removed as per user request */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Link to="/guests" className="card hover:shadow-lg transition-all group flex flex-col items-center justify-center p-4 text-center">
+          <span className="text-2xl mb-1 group-hover:scale-125 transition-transform">👤</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Add Guest</span>
+        </Link>
+        <Link to="/checklist" className="card hover:shadow-lg transition-all group flex flex-col items-center justify-center p-4 text-center">
+          <span className="text-2xl mb-1 group-hover:scale-125 transition-transform">📝</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">New Task</span>
+        </Link>
+        <Link to="/budget" className="card hover:shadow-lg transition-all group flex flex-col items-center justify-center p-4 text-center">
+          <span className="text-2xl mb-1 group-hover:scale-125 transition-transform">💸</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Expense</span>
+        </Link>
+        <Link to="/seating" className="card hover:shadow-lg transition-all group flex flex-col items-center justify-center p-4 text-center">
+          <span className="text-2xl mb-1 group-hover:scale-125 transition-transform">🪑</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Floor Plan</span>
+        </Link>
+        <Link to="/timeline" className="card hover:shadow-lg transition-all group flex flex-col items-center justify-center p-4 text-center">
+          <span className="text-2xl mb-1 group-hover:scale-125 transition-transform">⏱️</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Schedule</span>
+        </Link>
+        <Link to="/communications" className="card hover:shadow-lg transition-all group flex flex-col items-center justify-center p-4 text-center">
+          <span className="text-2xl mb-1 group-hover:scale-125 transition-transform">📧</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Communicate</span>
+        </Link>
+      </div>
+
+      {/* CLI-Style Metrics Header */}
+      <div className="flex items-center gap-4 bg-gray-900 text-green-400 p-3 rounded-lg font-mono text-xs shadow-inner">
+        <span className="opacity-50">$ wedding-status --all</span>
+        <div className="flex-1 border-b border-gray-700 mx-2" />
+        <span>V 2.1.0-STABLE</span>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Tasks</h3>
-          <p className="text-3xl font-serif text-gray-800 mt-2">{completedTasks}/{totalTasks}</p>
-          <div className="progress-bar mt-3">
-            <div className="progress-bar-fill" style={{ width: `${taskProgress}%` }} />
+        {appSettings.enabledModules.includes('checklist') && (
+          <div className="card">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Tasks</h3>
+            <p className="text-3xl font-serif text-gray-800 mt-2">{completedTasks}/{totalTasks}</p>
+            <div className="progress-bar mt-3">
+              <div className="progress-bar-fill" style={{ width: `${taskProgress}%` }} />
+            </div>
+            <p className="text-sm text-gray-500 mt-2">{taskProgress}% complete</p>
           </div>
-          <p className="text-sm text-gray-500 mt-2">{taskProgress}% complete</p>
-        </div>
+        )}
 
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Budget</h3>
-          <p className="text-3xl font-serif text-gray-800 mt-2">${spent.toLocaleString()}</p>
-          <div className="progress-bar mt-3">
-            <div
-              className={`progress-bar-fill ${budgetProgress > 90 ? 'bg-red-500' : budgetProgress > 75 ? 'bg-yellow-500' : ''}`}
-              style={{ width: `${Math.min(budgetProgress, 100)}%` }}
-            />
+        {appSettings.enabledModules.includes('budget') && (
+          <div className="card">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Budget</h3>
+            <p className="text-3xl font-serif text-gray-800 mt-2">${spent.toLocaleString()}</p>
+            <div className="progress-bar mt-3">
+              <div
+                className={`progress-bar-fill ${budgetProgress > 90 ? 'bg-red-500' : budgetProgress > 75 ? 'bg-yellow-500' : ''}`}
+                style={{ width: `${Math.min(budgetProgress, 100)}%` }}
+              />
+            </div>
+            <p className="text-sm text-gray-500 mt-2">${remaining.toLocaleString()} remaining</p>
           </div>
-          <p className="text-sm text-gray-500 mt-2">${remaining.toLocaleString()} remaining</p>
-        </div>
+        )}
 
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Guests</h3>
-          <p className="text-3xl font-serif text-gray-800 mt-2">{attendingGuests}</p>
-          <p className="text-sm text-gray-500 mt-2">{pendingRSVPs} pending | {guests.length} invited</p>
-        </div>
+        {appSettings.enabledModules.includes('guests') && (
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Guests</h3>
+              <span className="text-[10px] font-mono text-green-500 bg-green-500/10 px-2 py-0.5 rounded animate-pulse">LIVE_RSVP_FEED</span>
+            </div>
+            <p className="text-3xl font-serif text-gray-800 mt-2">{attendingGuests}</p>
+            <p className="text-sm text-gray-500 mt-2">{pendingRSVPs} pending | {guests.length} invited</p>
+          </div>
+        )}
 
-        <div className="card">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Vendors</h3>
-          <p className="text-3xl font-serif text-gray-800 mt-2">{vendors.filter(v => v.contracted).length}/{vendors.length}</p>
-          <p className="text-sm text-gray-500 mt-2">booked</p>
-        </div>
+        {appSettings.enabledModules.includes('vendors') && (
+          <div className="card">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Vendors</h3>
+            <p className="text-3xl font-serif text-gray-800 mt-2">{vendors.filter(v => v.contracted).length}/{vendors.length}</p>
+            <p className="text-sm text-gray-500 mt-2">booked</p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* RSVP Status Chart */}
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-800 mb-4">RSVP Status</h3>
-          {guests.length > 0 ? (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={rsvpData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value">
-                    {rsvpData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex justify-center flex-wrap gap-4 mt-4">
-                {rsvpData.map((item) => (
-                  <div key={item.name} className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-sm text-gray-600 font-medium">{item.name}: {item.value}</span>
-                  </div>
-                ))}
+        {appSettings.enabledModules.includes('guests') && (
+          <div className="card">
+            <h3 className="text-lg font-medium text-gray-800 mb-4">RSVP Status</h3>
+            {guests.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={rsvpData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value">
+                      {rsvpData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex justify-center flex-wrap gap-4 mt-4">
+                  {rsvpData.map((item) => (
+                    <div key={item.name} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm text-gray-600 font-medium">{item.name}: {item.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">Add guests to see RSVP status</p>
-          )}
-        </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Add guests to see RSVP status</p>
+            )}
+          </div>
+        )}
 
         {/* Budget Chart */}
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-800 mb-4">Spending by Category</h3>
-          {budgetByCategory.length > 0 ? (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={budgetByCategory} layout="vertical">
-                  <XAxis type="number" tickFormatter={(v) => `$${v.toLocaleString()}`} />
-                  <YAxis type="category" dataKey="category" width={100} />
-                  <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
-                  <Bar dataKey="amount" fill="#c97f66" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">Add budget items to see spending</p>
-          )}
-        </div>
+        {appSettings.enabledModules.includes('budget') && (
+          <div className="card">
+            <h3 className="text-lg font-medium text-gray-800 mb-4">Spending by Category</h3>
+            {budgetByCategory.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={budgetByCategory} layout="vertical">
+                    <XAxis type="number" tickFormatter={(v) => `$${v.toLocaleString()}`} />
+                    <YAxis type="category" dataKey="category" width={100} />
+                    <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                    <Bar dataKey="amount" fill="#c97f66" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Add budget items to see spending</p>
+            )}
+          </div>
+        )}
 
         {/* Guest Grouping Chart */}
-        <div className="card h-[380px] flex flex-col group hover:shadow-lg transition-all duration-500 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-primary-50 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-125 duration-700" />
-          <h3 className="text-lg font-serif text-gray-800 mb-4 relative z-10">Guest Circles</h3>
-          <div className="flex-1 relative z-10">
-            {groupData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={groupData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value">
-                    {groupData.map((_entry, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-gray-500 text-center py-8">No group data available</p>
-            )}
+        {appSettings.enabledModules.includes('guests') && (
+          <div className="card h-[380px] flex flex-col group hover:shadow-lg transition-all duration-500 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary-50 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-125 duration-700" />
+            <h3 className="text-lg font-serif text-gray-800 mb-4 relative z-10">Guest Circles</h3>
+            <div className="flex-1 relative z-10">
+              {groupData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={groupData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value">
+                      {groupData.map((_entry, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No group data available</p>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 relative z-10">
+              {groupData.slice(0, 4).map((g, i) => (
+                <div key={g.name} className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                  <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{g.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 relative z-10">
-            {groupData.slice(0, 4).map((g, i) => (
-              <div key={g.name} className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{g.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Meal Selection Chart */}
-        <div className="card h-[380px] flex flex-col group hover:shadow-lg transition-all duration-500 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-125 duration-700" />
-          <h3 className="text-lg font-serif text-gray-800 mb-4 relative z-10">Catering Summary</h3>
-          <div className="flex-1 relative z-10">
-            {mealData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={mealData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value">
-                    {mealData.map((_entry, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[(index + 3) % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-gray-500 text-center py-8 italic text-sm">Awaiting meal confirmations</p>
-            )}
-          </div>
-          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 relative z-10">
-            {mealData.slice(0, 4).map((m, i) => (
-              <div key={m.name} className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[(i + 3) % CHART_COLORS.length] }} />
-                <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{m.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">Upcoming Tasks</h3>
-        {upcomingTasks.length > 0 ? (
-          <div className="space-y-3">
-            {upcomingTasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-800">{task.title}</p>
-                  <p className="text-sm text-gray-500">{task.description}</p>
+        {appSettings.enabledModules.includes('guests') && (
+          <div className="card h-[380px] flex flex-col group hover:shadow-lg transition-all duration-500 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-125 duration-700" />
+            <h3 className="text-lg font-serif text-gray-800 mb-4 relative z-10">Catering Summary</h3>
+            <div className="flex-1 relative z-10">
+              {mealData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={mealData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value">
+                      {mealData.map((_entry, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[(index + 3) % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-gray-500 text-center py-8 italic text-sm">Awaiting meal confirmations</p>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 relative z-10">
+              {mealData.slice(0, 4).map((m, i) => (
+                <div key={m.name} className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[(i + 3) % CHART_COLORS.length] }} />
+                  <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{m.name}</span>
                 </div>
-                <div className="text-right">
-                  <span className={`badge ${task.priority === 'high' ? 'badge-danger' : task.priority === 'medium' ? 'badge-warning' : 'badge-success'}`}>
-                    {task.priority}
-                  </span>
-                  {task.dueDate && (
-                    <p className="text-sm text-gray-500 mt-1">{format(new Date(task.dueDate), 'MMM d')}</p>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        ) : (
-          <p className="text-gray-500 text-center py-4">No upcoming tasks with due dates</p>
         )}
       </div>
+
+      {appSettings.enabledModules.includes('checklist') && (
+        <div className="card">
+          <h3 className="text-lg font-medium text-gray-800 mb-4">Upcoming Tasks</h3>
+          {upcomingTasks.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingTasks.map((task) => (
+                <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-800">{task.title}</p>
+                    <p className="text-sm text-gray-500">{task.description}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`badge ${task.priority === 'high' ? 'badge-danger' : task.priority === 'medium' ? 'badge-warning' : 'badge-success'}`}>
+                      {task.priority}
+                    </span>
+                    {task.dueDate && (
+                      <p className="text-sm text-gray-500 mt-1">{format(new Date(task.dueDate), 'MMM d')}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">No upcoming tasks with due dates</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(npm install:*)",
+      "Bash(wc:*)",
+      "Bash(tree:*)",
+      "Bash(timeout 10 npm run dev:*)"
     ]
   }
 }

@@ -10,7 +10,13 @@ import type {
   Table,
   TimelineEvent,
   Photo,
-  WebsiteSettings
+  WebsiteSettings,
+  AppSettings,
+  Notification,
+  RoomElement,
+  InspirationBoard,
+  InspirationImage,
+  AuthUser
 } from '../types'
 
 const vendorCategoryMap: Record<string, string> = {
@@ -52,6 +58,7 @@ interface WeddingState {
   updateGuest: (id: string, guest: Partial<Guest>) => void
   deleteGuest: (id: string) => void
   importGuests: (guests: Omit<Guest, 'id'>[]) => void
+  updateGuestCommunication: (id: string, type: 'saveTheDate' | 'reminder') => void
 
   // Vendors
   vendors: Vendor[]
@@ -66,6 +73,13 @@ interface WeddingState {
   deleteTable: (id: string) => void
   assignGuestToTable: (guestId: string, tableId: string) => void
   removeGuestFromTable: (guestId: string) => void
+
+  // Room Elements
+  roomElements: RoomElement[]
+  addRoomElement: (element: Omit<RoomElement, 'id'>) => void
+  updateRoomElement: (id: string, element: Partial<RoomElement>) => void
+  deleteRoomElement: (id: string) => void
+  resetFloorPlan: () => void
 
   // Timeline
   timelineEvents: TimelineEvent[]
@@ -83,6 +97,33 @@ interface WeddingState {
   websiteSettings: WebsiteSettings
   updateWebsiteSettings: (settings: Partial<WebsiteSettings>) => void
 
+  // App Settings
+  appSettings: AppSettings
+  setDarkMode: (enabled: boolean) => void
+  updateAppSettings: (settings: Partial<AppSettings>) => void
+
+  // Notifications
+  notifications: Notification[]
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read' | 'dismissed'>) => void
+  markNotificationRead: (id: string) => void
+  dismissNotification: (id: string) => void
+  clearAllNotifications: () => void
+  getActiveNotifications: () => Notification[]
+
+  // Inspiration Boards
+  inspirationBoards: InspirationBoard[]
+  addInspirationBoard: (board: Omit<InspirationBoard, 'id' | 'createdAt' | 'updatedAt' | 'images'>) => void
+  updateInspirationBoard: (id: string, board: Partial<InspirationBoard>) => void
+  deleteInspirationBoard: (id: string) => void
+  addImageToBoard: (boardId: string, image: Omit<InspirationImage, 'id' | 'addedAt'>) => void
+  updateBoardImage: (boardId: string, imageId: string, updates: Partial<InspirationImage>) => void
+  removeImageFromBoard: (boardId: string, imageId: string) => void
+
+  // User & Auth
+  user: AuthUser | null
+  setUser: (user: AuthUser | null) => void
+  signOut: () => void
+
   // Maintenance
   recalculateBudget: () => void
   populateDefaultBudget: () => void
@@ -96,7 +137,16 @@ const defaultWedding: WeddingDetails = {
   venue: '',
   theme: '',
   estimatedGuests: 100,
-  totalBudget: 30000
+  totalBudget: 30000,
+  ceremonyVenue: '',
+  ceremonyAddress: '',
+  ceremonyLink: '',
+  ceremonyTime: '',
+  receptionVenue: '',
+  receptionAddress: '',
+  receptionLink: '',
+  receptionTime: '',
+  sameLocation: false
 }
 
 const defaultWebsiteSettings: WebsiteSettings = {
@@ -110,6 +160,18 @@ const defaultWebsiteSettings: WebsiteSettings = {
   showPhotos: true,
   showRsvp: true,
   password: ''
+}
+
+const defaultAppSettings: AppSettings = {
+  darkMode: false,
+  notifications: {
+    enableInApp: true,
+    paymentReminderDays: [7, 3, 1],
+    taskReminderDays: [3, 1],
+    rsvpReminderEnabled: true,
+    budgetAlertThresholds: [80, 90, 100]
+  },
+  enabledModules: ['dashboard', 'checklist', 'budget']
 }
 
 // Default checklist items based on wedding planning best practices
@@ -174,7 +236,12 @@ const defaultBudget: BudgetItem[] = [
 
 export const useWeddingStore = create<WeddingState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      // User & Auth
+      user: null,
+      setUser: (user) => set({ user }),
+      signOut: () => set({ user: null }),
+
       // Wedding Details
       wedding: defaultWedding,
       setWedding: (updates) =>
@@ -242,6 +309,18 @@ export const useWeddingStore = create<WeddingState>()(
             ...state.guests,
             ...newGuests.map((guest) => ({ ...guest, id: uuidv4() }))
           ]
+        })),
+      updateGuestCommunication: (id, type) =>
+        set((state) => ({
+          guests: state.guests.map((guest) =>
+            guest.id === id
+              ? {
+                ...guest,
+                [type === 'saveTheDate' ? 'saveTheDateSent' : 'reminderSent']: true,
+                lastCommunicationAt: new Date().toISOString()
+              }
+              : guest
+          )
         })),
 
       // Vendors
@@ -345,6 +424,29 @@ export const useWeddingStore = create<WeddingState>()(
           )
         })),
 
+      // Room Elements
+      roomElements: [],
+      addRoomElement: (element) =>
+        set((state) => ({
+          roomElements: [...state.roomElements, { ...element, id: uuidv4() }]
+        })),
+      updateRoomElement: (id, updates) =>
+        set((state) => ({
+          roomElements: state.roomElements.map((el) =>
+            el.id === id ? { ...el, ...updates } : el
+          )
+        })),
+      deleteRoomElement: (id) =>
+        set((state) => ({
+          roomElements: state.roomElements.filter((el) => el.id !== id)
+        })),
+      resetFloorPlan: () =>
+        set((state) => ({
+          tables: state.tables.map(t => ({ ...t, guests: [] })), // Unseat everyone
+          guests: state.guests.map(g => ({ ...g, tableAssignment: null })), // Clear assignments
+          roomElements: [] // Clear all decor
+        })),
+
       // Timeline
       timelineEvents: [],
       addTimelineEvent: (event) =>
@@ -386,6 +488,61 @@ export const useWeddingStore = create<WeddingState>()(
           websiteSettings: { ...state.websiteSettings, ...updates }
         })),
 
+      // App Settings
+      appSettings: defaultAppSettings,
+      setDarkMode: (enabled) =>
+        set((state) => {
+          // Apply dark mode to document
+          if (enabled) {
+            document.documentElement.classList.add('dark')
+          } else {
+            document.documentElement.classList.remove('dark')
+          }
+          return {
+            appSettings: { ...state.appSettings, darkMode: enabled }
+          }
+        }),
+      updateAppSettings: (updates) =>
+        set((state) => ({
+          appSettings: { ...state.appSettings, ...updates }
+        })),
+
+      // Notifications
+      notifications: [],
+      addNotification: (notification) =>
+        set((state) => ({
+          notifications: [
+            {
+              ...notification,
+              id: uuidv4(),
+              createdAt: new Date().toISOString(),
+              read: false,
+              dismissed: false
+            },
+            ...state.notifications
+          ]
+        })),
+      markNotificationRead: (id) =>
+        set((state) => ({
+          notifications: state.notifications.map((n) =>
+            n.id === id ? { ...n, read: true } : n
+          )
+        })),
+      dismissNotification: (id) =>
+        set((state) => ({
+          notifications: state.notifications.map((n) =>
+            n.id === id ? { ...n, dismissed: true } : n
+          )
+        })),
+      clearAllNotifications: () =>
+        set(() => ({
+          notifications: []
+        })),
+      getActiveNotifications: () => {
+        const state = get()
+        return state.notifications.filter((n: Notification) => !n.dismissed)
+      },
+
       // Maintenance
       recalculateBudget: () =>
         set((state) => {
@@ -421,6 +578,83 @@ export const useWeddingStore = create<WeddingState>()(
       populateDefaultBudget: () =>
         set(() => ({
           budgetItems: defaultBudget
+        })),
+
+      // Inspiration Boards
+      inspirationBoards: [],
+      addInspirationBoard: (board: Omit<InspirationBoard, 'id' | 'createdAt' | 'updatedAt' | 'images'>) =>
+        set((state) => ({
+          inspirationBoards: [
+            ...state.inspirationBoards,
+            {
+              ...board,
+              id: uuidv4(),
+              images: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+          ]
+        })),
+      updateInspirationBoard: (id: string, updates: Partial<InspirationBoard>) =>
+        set((state) => ({
+          inspirationBoards: state.inspirationBoards.map((board) =>
+            board.id === id
+              ? { ...board, ...updates, updatedAt: new Date().toISOString() }
+              : board
+          )
+        })),
+      deleteInspirationBoard: (id: string) =>
+        set((state) => ({
+          inspirationBoards: state.inspirationBoards.filter((board) => board.id !== id)
+        })),
+      addImageToBoard: (boardId: string, image: Omit<InspirationImage, 'id' | 'addedAt'>) =>
+        set((state) => ({
+          inspirationBoards: state.inspirationBoards.map((board) =>
+            board.id === boardId
+              ? {
+                ...board,
+                images: [
+                  ...board.images,
+                  {
+                    ...image,
+                    id: uuidv4(),
+                    addedAt: new Date().toISOString()
+                  }
+                ],
+                coverImage: board.coverImage || image.url,
+                updatedAt: new Date().toISOString()
+              }
+              : board
+          )
+        })),
+      updateBoardImage: (boardId: string, imageId: string, updates: Partial<InspirationImage>) =>
+        set((state) => ({
+          inspirationBoards: state.inspirationBoards.map((board) =>
+            board.id === boardId
+              ? {
+                ...board,
+                images: board.images.map((img) =>
+                  img.id === imageId ? { ...img, ...updates } : img
+                ),
+                updatedAt: new Date().toISOString()
+              }
+              : board
+          )
+        })),
+      removeImageFromBoard: (boardId: string, imageId: string) =>
+        set((state) => ({
+          inspirationBoards: state.inspirationBoards.map((board) => {
+            if (board.id !== boardId) return board
+            const newImages = board.images.filter((img) => img.id !== imageId)
+            return {
+              ...board,
+              images: newImages,
+              coverImage: board.coverImage === board.images.find(i => i.id === imageId)?.url
+                ? newImages[0]?.url || ''
+                : board.coverImage,
+              updatedAt: new Date().toISOString()
+            }
+          })
         }))
     }),
     {

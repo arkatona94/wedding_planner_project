@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { useWeddingStore } from '../store/weddingStore'
 import { QRCodeSVG } from 'qrcode.react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts'
+import { format } from 'date-fns'
 import type { Guest, RSVPStatus } from '../types'
+import { exportGuestListPDF } from '../utils/exports'
 
 const CHART_COLORS = ['#c97f66', '#9dc183', '#d4af37', '#d4a5a5', '#b5644d', '#7d4336', '#dba08b', '#f3d9d0']
 
@@ -21,7 +23,7 @@ const mainGroups = [
 ]
 
 export default function Guests() {
-  const { guests, addGuest, updateGuest, deleteGuest, importGuests, tables } = useWeddingStore()
+  const { guests, addGuest, updateGuest, deleteGuest, importGuests, tables, wedding } = useWeddingStore()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showQRModal, setShowQRModal] = useState(false)
@@ -215,6 +217,11 @@ export default function Guests() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+            <span>/</span>
+            <span className="text-gray-400">Guests</span>
+          </div>
           <h1 className="text-2xl font-serif text-gray-800">Guest Management</h1>
           <p className="text-gray-500">{stats.totalGuests} total guests ({stats.totalInvitations} invitations)</p>
         </div>
@@ -222,8 +229,8 @@ export default function Guests() {
           <button
             onClick={() => setShowAnalytics(!showAnalytics)}
             className={`px-4 py-2 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 border shadow-sm ${showAnalytics
-                ? 'bg-primary-600 text-white border-primary-600 scale-105 shadow-primary-200'
-                : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300 hover:text-primary-600'
+              ? 'bg-primary-600 text-white border-primary-600 scale-105 shadow-primary-200'
+              : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300 hover:text-primary-600'
               }`}
           >
             {showAnalytics ? '📋 Back to Management' : '📊 Visual Review'}
@@ -236,7 +243,21 @@ export default function Guests() {
               </Link>
               <button onClick={() => setShowQRModal(true)} className="btn-secondary">RSVP QR Code</button>
               <button onClick={() => setShowImportModal(true)} className="btn-secondary">Import CSV</button>
-              <button onClick={exportCSV} className="btn-secondary">Export</button>
+              <button onClick={exportCSV} className="btn-secondary">Export CSV</button>
+              <button
+                onClick={() => {
+                  const coupleNames = wedding.partner1Name && wedding.partner2Name
+                    ? `${wedding.partner1Name} & ${wedding.partner2Name}`
+                    : 'Wedding'
+                  const weddingDate = wedding.weddingDate
+                    ? format(new Date(wedding.weddingDate), 'MMMM d, yyyy')
+                    : ''
+                  exportGuestListPDF(guests, tables, coupleNames, weddingDate)
+                }}
+                className="btn-secondary"
+              >
+                Export PDF
+              </button>
               <button onClick={() => setShowAddModal(true)} className="btn-primary">+ Add Guest</button>
             </>
           )}
@@ -404,30 +425,32 @@ export default function Guests() {
         </div>
       ) : (
         <>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <input
               type="text"
               placeholder="Search guests..."
-              className="input-field w-64"
+              className="input-field w-full md:w-64"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <select className="input-field w-auto" value={rsvpFilter} onChange={(e) => setRsvpFilter(e.target.value as RSVPStatus | 'all')}>
-              <option value="all">All RSVP Status</option>
-              <option value="attending">Attending</option>
-              <option value="declined">Declined</option>
-              <option value="pending">Pending</option>
-              <option value="maybe">Maybe</option>
-            </select>
-            <select className="input-field w-auto" value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
-              <option value="all">All Groups</option>
-              {mainGroups.map(group => (
-                <option key={group} value={group}>{group}</option>
-              ))}
-              {uniqueGroups.filter(g => !mainGroups.includes(g)).map(group => (
-                <option key={group} value={group}>{group}</option>
-              ))}
-            </select>
+            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+              <select className="input-field grow sm:grow-0 w-full sm:w-auto" value={rsvpFilter} onChange={(e) => setRsvpFilter(e.target.value as RSVPStatus | 'all')}>
+                <option value="all">All RSVP Status</option>
+                <option value="attending">Attending</option>
+                <option value="declined">Declined</option>
+                <option value="pending">Pending</option>
+                <option value="maybe">Maybe</option>
+              </select>
+              <select className="input-field grow sm:grow-0 w-full sm:w-auto" value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+                <option value="all">All Groups</option>
+                {mainGroups.map(group => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
+                {uniqueGroups.filter(g => !mainGroups.includes(g)).map(group => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="card overflow-hidden">

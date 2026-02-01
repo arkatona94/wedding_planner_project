@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { format } from 'date-fns'
 import type { ChecklistCategory, ChecklistItem } from '../types'
+import { exportChecklistPDF } from '../utils/exports'
 
 const categories: { value: ChecklistCategory; label: string }[] = [
   { value: 'venue', label: 'Venue' },
@@ -18,7 +20,7 @@ const categories: { value: ChecklistCategory; label: string }[] = [
 ]
 
 export default function Checklist() {
-  const { checklist, addChecklistItem, updateChecklistItem, deleteChecklistItem, toggleChecklistItem } = useWeddingStore()
+  const { checklist, addChecklistItem, updateChecklistItem, deleteChecklistItem, toggleChecklistItem, wedding } = useWeddingStore()
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingItem, setEditingItem] = useState<ChecklistItem | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
@@ -84,12 +86,33 @@ export default function Checklist() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+            <span>/</span>
+            <span className="text-gray-400">Checklist</span>
+          </div>
           <h1 className="text-2xl font-serif text-gray-800">Wedding Checklist</h1>
           <p className="text-gray-500">{completedCount} of {checklist.length} tasks completed</p>
         </div>
-        <button onClick={() => setShowAddModal(true)} className="btn-primary">
-          + Add Task
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              const coupleNames = wedding.partner1Name && wedding.partner2Name
+                ? `${wedding.partner1Name} & ${wedding.partner2Name}`
+                : 'Wedding'
+              const weddingDate = wedding.weddingDate
+                ? format(new Date(wedding.weddingDate), 'MMMM d, yyyy')
+                : ''
+              exportChecklistPDF(checklist, coupleNames, weddingDate)
+            }}
+            className="btn-secondary"
+          >
+            Export PDF
+          </button>
+          <button onClick={() => setShowAddModal(true)} className="btn-primary">
+            + Add Task
+          </button>
+        </div>
       </div>
 
       {/* Progress Bar */}
@@ -110,11 +133,10 @@ export default function Checklist() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === f
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === f
                   ? 'bg-primary-500 text-white'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
+                }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
@@ -146,11 +168,10 @@ export default function Checklist() {
             >
               <button
                 onClick={() => toggleChecklistItem(item.id)}
-                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-colors ${
-                  item.completed
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-colors ${item.completed
                     ? 'bg-primary-500 border-primary-500 text-white'
                     : 'border-gray-300 hover:border-primary-400'
-                }`}
+                  }`}
               >
                 {item.completed && '✓'}
               </button>
@@ -160,10 +181,9 @@ export default function Checklist() {
                   <h3 className={`font-medium ${item.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
                     {item.title}
                   </h3>
-                  <span className={`badge ${
-                    item.priority === 'high' ? 'badge-danger' :
-                    item.priority === 'medium' ? 'badge-warning' : 'badge-success'
-                  }`}>
+                  <span className={`badge ${item.priority === 'high' ? 'badge-danger' :
+                      item.priority === 'medium' ? 'badge-warning' : 'badge-success'
+                    }`}>
                     {item.priority}
                   </span>
                   <span className="badge bg-gray-100 text-gray-600">

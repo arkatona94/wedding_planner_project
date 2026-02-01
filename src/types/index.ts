@@ -9,6 +9,16 @@ export interface WeddingDetails {
   theme: string
   estimatedGuests: number
   totalBudget: number
+  // New ceremony & reception details
+  ceremonyVenue?: string
+  ceremonyAddress?: string
+  ceremonyLink?: string
+  ceremonyTime?: string
+  receptionVenue?: string
+  receptionAddress?: string
+  receptionLink?: string
+  receptionTime?: string
+  sameLocation?: boolean
 }
 
 export interface ChecklistItem {
@@ -64,6 +74,10 @@ export interface Guest {
   isBrideSide: boolean
   isGroomSide: boolean
   notes: string
+  // Communication tracking
+  saveTheDateSent?: boolean
+  reminderSent?: boolean
+  lastCommunicationAt?: string
 }
 
 export interface GuestAddress {
@@ -112,9 +126,26 @@ export interface Table {
   name: string
   capacity: number
   shape: 'round' | 'rectangular' | 'square'
+  side?: 'bride' | 'groom' | 'general'
   x: number
   y: number
+  width: number
+  height: number
+  rotation: number
   guests: string[]
+}
+
+export interface RoomElement {
+  id: string
+  type: string
+  label: string
+  icon: string
+  x: number
+  y: number
+  width: number
+  height: number
+  rotation: number
+  color?: string
 }
 
 export interface TimelineEvent {
@@ -150,4 +181,69 @@ export interface WebsiteSettings {
   showPhotos: boolean
   showRsvp: boolean
   password: string
+}
+
+// App Settings & Preferences
+export interface AppSettings {
+  darkMode: boolean
+  notifications: NotificationPreferences
+  enabledModules: string[]
+}
+
+export interface AuthUser {
+  id: string
+  email: string
+  name?: string
+}
+
+export interface NotificationPreferences {
+  enableInApp: boolean
+  paymentReminderDays: number[]
+  taskReminderDays: number[]
+  rsvpReminderEnabled: boolean
+  budgetAlertThresholds: number[]
+}
+
+export interface Notification {
+  id: string
+  type: 'payment_due' | 'payment_overdue' | 'task_due' | 'task_overdue' | 'rsvp_reminder' | 'budget_alert'
+  title: string
+  message: string
+  relatedId?: string
+  relatedType?: 'budget' | 'checklist' | 'guest'
+  createdAt: string
+  read: boolean
+  dismissed: boolean
+}
+
+// Inspiration Boards
+export type BoardCategory =
+  | 'colors'
+  | 'florals'
+  | 'fashion'
+  | 'venue'
+  | 'cake'
+  | 'photography'
+  | 'decor'
+  | 'stationery'
+  | 'other'
+
+export interface InspirationImage {
+  id: string
+  url: string
+  source?: string
+  notes?: string
+  tags: string[]
+  addedAt: string
+}
+
+export interface InspirationBoard {
+  id: string
+  name: string
+  category: BoardCategory
+  description: string
+  coverImage?: string
+  images: InspirationImage[]
+  createdAt: string
+  updatedAt: string
 }

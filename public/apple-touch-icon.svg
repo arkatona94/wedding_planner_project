@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <linearGradient id="heartGradientApple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8e1e4"/>
+      <stop offset="100%" style="stop-color:#c97f66"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="30" fill="#fdf8f6"/>
+  <circle cx="90" cy="90" r="75" fill="#fdf8f6" stroke="#c97f66" stroke-width="3"/>
+  <path d="M90 135 C42 98 42 56 66 47 C84 42 90 65 90 65 C90 65 96 42 114 47 C138 56 138 98 90 135Z" fill="url(#heartGradientApple)"/>
+  <circle cx="66" cy="60" r="5" fill="white" opacity="0.6"/>
+</svg>

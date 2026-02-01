@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import type { Vendor, VendorCategory } from '../types'
 import venuesData from '../data/venues.json'
@@ -131,6 +132,11 @@ export default function Vendors() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+            <span>/</span>
+            <span className="text-gray-400">Vendors</span>
+          </div>
           <h1 className="text-2xl font-serif text-gray-800">Vendor Management</h1>
           <p className="text-gray-500">{bookedCount} of {vendors.length} vendors booked</p>
         </div>

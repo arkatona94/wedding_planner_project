@@ -23,7 +23,7 @@ You operate within a 3-layer architecture that separates concerns to maximize re
 **Layer 3: Execution (Doing the work)**
 - Deterministic Python scripts in `execution/`
 - Environment variables, api tokens, etc are stored in `.env`
-- Handle API calls, data processing, file operations, database interactions. Example: Supabase API Key = sb_secret_HQod82o0XOxZvu5zz8yTDg_RQ5JB1NR and URL 
+- Handle API calls, data processing, file operations, database interactions. Example: Supabase API Key = ${SUPABASE_SERVICE_ROLE_KEY} and URL 
 - Reliable, testable, fast. Use scripts instead of manual work.
 
 **Why this works:** if you do everything yourself, errors compound. 90% accuracy per step = 59% success over 5 steps. The solution is push complexity into deterministic code. That way you just focus on decision-making.
@@ -306,3 +306,83 @@ When coordinating with other agents, maintain clear context, document decisions,
 Be pragmatic. Be reliable. Self-anneal. And when in doubt, check the directive first.
 
 **Model Priority:** Use Opus 4.5 for everything while building. It came out recently and is significantly better than Sonnet and other models for complex orchestration and reasoning tasks.
+
+---
+
+## EverAfter Wedding Planner - Project Context
+
+This is the **EverAfter Wedding Planner** application - a comprehensive wedding planning PWA built with React, TypeScript, Vite, and Tailwind CSS.
+
+### Database Configuration
+
+**Supabase Project:**
+- **URL**: `https://redpsmlxapptbrqeygqo.supabase.co`
+- **Anon Key**: Stored in `.env` as `VITE_SUPABASE_ANON_KEY`
+
+**Why Supabase:**
+- PostgreSQL relational database (data is relational: Guests → Tables, Vendors → Budget)
+- Open source, self-hostable (privacy-first brand positioning)
+- Row-level security for partner collaboration
+- Real-time subscriptions for live updates
+- Predictable pricing
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18 + TypeScript |
+| Build | Vite 5 |
+| Styling | Tailwind CSS 3 |
+| State | Zustand (localStorage persistence) |
+| Routing | React Router v6 |
+| Charts | Recharts |
+| PDF | jsPDF + jspdf-autotable |
+| PWA | vite-plugin-pwa |
+
+### Current Features
+
+- Dashboard with analytics
+- Guest management with CSV import/export
+- Budget tracker with vendor sync
+- Vendor management with scraped local data
+- Seating chart with drag-and-drop
+- Wedding day timeline with ICS export
+- Photo gallery with QR sharing
+- Wedding website builder
+- Marriage laws database (50 US states + DC)
+- Dark mode
+- In-app notification center
+- PDF exports for all major sections
+- Shareable read-only links
+
+### Data Models
+
+Core entities in `src/types/index.ts`:
+- `WeddingDetails` - Couple info, date, budget
+- `Guest` - RSVP, meal, dietary, table assignment
+- `Vendor` - Category, pricing, contract status
+- `BudgetItem` - Category, estimated/actual costs
+- `ChecklistItem` - Tasks with due dates, priorities
+- `Table` - Seating capacity, shape, guest assignments
+- `TimelineEvent` - Day-of schedule
+- `Photo` - Gallery with likes
+- `WebsiteSettings` - Custom wedding website config
+- `AppSettings` - Dark mode, notification preferences
+
+### Migration Plan (localStorage → Supabase)
+
+When implementing cloud sync:
+1. Create Supabase tables matching TypeScript interfaces
+2. Add Supabase client (`@supabase/supabase-js`)
+3. Create auth context for user sessions
+4. Implement sync layer that writes to both localStorage and Supabase
+5. Add real-time subscriptions for partner collaboration
+6. Row-level security policies per wedding
+
+### Key Files
+
+- `src/store/weddingStore.ts` - Zustand store with all state
+- `src/types/index.ts` - TypeScript interfaces
+- `src/utils/exports.ts` - PDF and ICS export utilities
+- `src/components/Layout.tsx` - Main layout with dark mode, notifications
+- `ROADMAP.md` - Product roadmap and priority action steps

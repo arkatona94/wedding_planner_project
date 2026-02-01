@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { format } from 'date-fns'
 import type { TimelineEvent } from '../types'
+import { exportTimelinePDF, exportTimelineICS } from '../utils/exports'
 
 const eventColors = [
   { value: '#c97f66', label: 'Rose' },
@@ -112,6 +114,11 @@ export default function Timeline() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+            <span>/</span>
+            <span className="text-gray-400">Timeline</span>
+          </div>
           <h1 className="text-2xl font-serif text-gray-800">Wedding Day Timeline</h1>
           {wedding.weddingDate && (
             <p className="text-gray-500">{format(new Date(wedding.weddingDate), 'EEEE, MMMM d, yyyy')}</p>
@@ -122,6 +129,36 @@ export default function Timeline() {
             <button onClick={() => setShowTemplateModal(true)} className="btn-secondary">
               Use Template
             </button>
+          )}
+          {timelineEvents.length > 0 && (
+            <>
+              <button
+                onClick={() => {
+                  const coupleNames = wedding.partner1Name && wedding.partner2Name
+                    ? `${wedding.partner1Name} & ${wedding.partner2Name}`
+                    : 'Wedding'
+                  const weddingDate = wedding.weddingDate
+                    ? format(new Date(wedding.weddingDate), 'MMMM d, yyyy')
+                    : ''
+                  exportTimelinePDF(timelineEvents, coupleNames, weddingDate)
+                }}
+                className="btn-secondary"
+              >
+                Export PDF
+              </button>
+              <button
+                onClick={() => {
+                  const coupleNames = wedding.partner1Name && wedding.partner2Name
+                    ? `${wedding.partner1Name} & ${wedding.partner2Name}`
+                    : 'Wedding'
+                  exportTimelineICS(timelineEvents, wedding.weddingDate, coupleNames)
+                }}
+                className="btn-secondary"
+                title="Add to Calendar"
+              >
+                Export to Calendar
+              </button>
+            </>
           )}
           <button onClick={() => setShowAddModal(true)} className="btn-primary">+ Add Event</button>
         </div>

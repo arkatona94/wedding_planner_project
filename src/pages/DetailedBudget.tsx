@@ -25,6 +25,13 @@ export default function DetailedBudget() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
             <div className="flex items-center justify-between">
                 <div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                        <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+                        <span>/</span>
+                        <Link to="/budget" className="hover:text-primary-600 transition-colors">Budget</Link>
+                        <span>/</span>
+                        <span className="text-gray-400">Detailed Table</span>
+                    </div>
                     <h1 className="text-3xl font-serif text-gray-800">Detailed Budget Table</h1>
                     <p className="text-gray-500">Comprehensive breakdown of all wedding expenses</p>
                 </div>

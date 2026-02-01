@@ -1,9 +1,25 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { format } from 'date-fns'
+import { CheckCircle2, LayoutDashboard, Calculator, Users, Globe, Grid, Clock, Camera, Sparkles, Scale } from 'lucide-react'
+
+const modules = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, required: true },
+  { id: 'checklist', label: 'Checklist', icon: CheckCircle2 },
+  { id: 'budget', label: 'Budget', icon: Calculator },
+  { id: 'guests', label: 'Guest List', icon: Users },
+  { id: 'website', label: 'Website', icon: Globe },
+  { id: 'seating', label: 'Seating Chart', icon: Grid },
+  { id: 'timeline', label: 'Timeline', icon: Clock },
+  { id: 'photos', label: 'Photos', icon: Camera },
+  { id: 'inspiration', label: 'Inspiration', icon: Sparkles },
+  { id: 'vendors', label: 'Vendors', icon: Users },
+  { id: 'marriage-laws', label: 'Marriage Laws', icon: Scale },
+]
 
 export default function Settings() {
-  const { wedding, setWedding, checklist, budgetItems, guests, vendors, tables, timelineEvents, photos } = useWeddingStore()
+  const { wedding, setWedding, checklist, budgetItems, guests, vendors, tables, timelineEvents, photos, appSettings, updateAppSettings } = useWeddingStore()
   const [showClearModal, setShowClearModal] = useState(false)
   const [confirmText, setConfirmText] = useState('')
 
@@ -42,6 +58,11 @@ export default function Settings() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+          <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
+          <span>/</span>
+          <span className="text-gray-400">Settings</span>
+        </div>
         <h1 className="text-2xl font-serif text-gray-800">Settings</h1>
         <p className="text-gray-500">Manage your wedding details and preferences</p>
       </div>
@@ -119,6 +140,36 @@ export default function Settings() {
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Feature Selection */}
+      <div className="card">
+        <h3 className="font-medium text-gray-800 mb-2">Feature Selection</h3>
+        <p className="text-sm text-gray-500 mb-6">Choose which tools to include in your dashboard.</p>
+
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          {modules.map((mod) => (
+            <button
+              key={mod.id}
+              onClick={() => {
+                const current = appSettings.enabledModules || []
+                const updated = current.includes(mod.id)
+                  ? current.filter(id => id !== mod.id)
+                  : [...current, mod.id]
+                updateAppSettings({ enabledModules: updated })
+              }}
+              className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 text-center
+                ${appSettings.enabledModules.includes(mod.id)
+                  ? 'border-primary-500 bg-primary-50 text-primary-700'
+                  : 'border-gray-100 hover:border-primary-200 text-gray-400'}
+                ${mod.required ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              <mod.icon className={`w-8 h-8 ${appSettings.enabledModules.includes(mod.id) ? 'text-primary-600' : 'text-gray-300'}`} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">{mod.label}</span>
+              {mod.required && <span className="text-[8px] italic">(Default)</span>}
+            </button>
+          ))}
         </div>
       </div>
 
