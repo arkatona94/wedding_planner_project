@@ -5,6 +5,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { format } from 'date-fns'
 import type { BudgetItem } from '../types'
 import { exportBudgetPDF } from '../utils/exports'
+import { generateSmartBudget, BUDGET_ALLOCATIONS } from '../utils/budgetCalculator'
+import { generateVendorsForLocation, hasRealVendorData } from '../utils/vendorGenerator'
 
 import venuesData from '../data/venues.json'
 import photographyData from '../data/photography.json'
@@ -52,9 +54,18 @@ const vendorDataMap: Record<string, any> = {
   'hair-makeup': hairMakeupData
 }
 
-const getVendorList = (budgetCategory: string) => {
+// Location-aware vendor list function - uses generated data for user's location
+const getVendorList = (budgetCategory: string, userState?: string, userCity?: string) => {
   const vendorKey = categoryToVendorKey[budgetCategory]
   if (!vendorKey) return []
+
+  // If user has location set and it's different from our real data (Cincinnati/OH)
+  // generate location-appropriate vendors
+  if (userState && !hasRealVendorData(userState, userCity)) {
+    return generateVendorsForLocation(vendorKey, userCity || 'Downtown', userState, 5)
+  }
+
+  // Fall back to static data for Cincinnati/OH area
   const data = vendorDataMap[vendorKey]
   if (!data) return []
   return data.results || data.all_venues || []
@@ -69,10 +80,12 @@ const categoryColors: Record<string, string> = {
 }
 
 export default function Budget() {
-  const { wedding, budgetItems, addBudgetItem, updateBudgetItem, deleteBudgetItem, setWedding, recalculateBudget } = useWeddingStore()
+  const { wedding, budgetItems, addBudgetItem, updateBudgetItem, deleteBudgetItem, setWedding, recalculateBudget, user } = useWeddingStore()
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingItem, setEditingItem] = useState<BudgetItem | null>(null)
   const [syncSuccess, setSyncSuccess] = useState(false)
+  const [showSmartBudgetModal, setShowSmartBudgetModal] = useState(false)
+  const [smartBudgetPreview, setSmartBudgetPreview] = useState<Omit<BudgetItem, 'id'>[]>([])
 
   const [formData, setFormData] = useState({
     category: 'Venue',
@@ -179,7 +192,24 @@ export default function Budget() {
           >
             Export PDF
           </button>
-          <button onClick={() => setShowAddModal(true)} className="btn-primary">+ Add Expense</button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="btn-primary"
+          >+ Add Expense</button>
+          <button
+            onClick={() => {
+              const preview = generateSmartBudget(totalBudget, user?.state, user?.city)
+              setSmartBudgetPreview(preview)
+              setShowSmartBudgetModal(true)
+            }}
+            className="btn-secondary flex items-center gap-2"
+            title={user?.state
+              ? `Budget adjusted for ${user.city ? user.city + ', ' : ''}${user.state} pricing`
+              : 'Auto-generate budget breakdown based on industry standards'
+            }
+          >
+            ✨ Smart Breakdown{user?.state ? ` (${user.state})` : ''}
+          </button>
         </div>
       </div>
 
@@ -452,6 +482,57 @@ export default function Budget() {
                 <button type="submit" className="btn-primary">{editingItem ? 'Save Changes' : 'Add Expense'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Smart Budget Modal */}
+      {showSmartBudgetModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto py-8">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-serif text-gray-800 mb-2">✨ Smart Budget Breakdown</h2>
+            <p className="text-gray-500 mb-4">
+              Based on your ${totalBudget.toLocaleString()} budget, here's an industry-standard allocation:
+            </p>
+
+            <div className="space-y-2 mb-6">
+              {smartBudgetPreview.map((item, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: categoryColors[item.category] || '#999' }}
+                    />
+                    <span className="font-medium text-gray-800">{item.category}</span>
+                    <span className="text-xs text-gray-500">
+                      ({Math.round((BUDGET_ALLOCATIONS[item.category] || 0) * 100)}%)
+                    </span>
+                  </div>
+                  <span className="font-mono text-gray-700">
+                    ${item.estimatedCost.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t pt-4 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowSmartBudgetModal(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Add all smart budget items
+                  smartBudgetPreview.forEach(item => addBudgetItem(item))
+                  setShowSmartBudgetModal(false)
+                }}
+                className="btn-primary"
+              >
+                Apply Breakdown
+              </button>
+            </div>
           </div>
         </div>
       )}

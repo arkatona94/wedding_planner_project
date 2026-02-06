@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
+import { generateVendorsForLocation, hasRealVendorData } from '../utils/vendorGenerator'
 import type { Vendor, VendorCategory } from '../types'
 import venuesData from '../data/venues.json'
 import photographyData from '../data/photography.json'
@@ -29,11 +30,21 @@ const vendorDataMap: Partial<Record<VendorCategory, any>> = {
   'hair-makeup': hairMakeupData
 }
 
-const getVendorList = (category: VendorCategory) => {
+// Location-aware vendor list - generates appropriate data based on user's location
+const getVendorList = (category: VendorCategory, userState?: string, userCity?: string): any[] => {
+  // If user has a state set and we don't have real data for that location,
+  // generate location-appropriate vendors
+  if (userState && !hasRealVendorData(userState, userCity)) {
+    return generateVendorsForLocation(category, userCity || 'Downtown', userState, 8)
+  }
+
+  // Otherwise use static data (Cincinnati/OH area)
   const data = vendorDataMap[category]
   if (!data) return []
-  // Handle inconsistent structure: venues.json uses 'all_venues', others use 'results'
-  return data.results || data.all_venues || []
+  const vendors = data.results || data.all_venues || []
+
+  // If state filter matches existing data's state, use it directly
+  return vendors
 }
 
 const vendorCategories: { value: VendorCategory; label: string }[] = [
@@ -52,11 +63,12 @@ const vendorCategories: { value: VendorCategory; label: string }[] = [
 ]
 
 export default function Vendors() {
-  const { vendors, addVendor, updateVendor, deleteVendor } = useWeddingStore()
+  const { vendors, addVendor, updateVendor, deleteVendor, user } = useWeddingStore()
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<VendorCategory | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [nearMeFilter, setNearMeFilter] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -160,7 +172,7 @@ export default function Vendors() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 items-center">
         <input
           type="text"
           placeholder="Search vendors..."
@@ -178,6 +190,22 @@ export default function Vendors() {
             <option key={cat.value} value={cat.value}>{cat.label}</option>
           ))}
         </select>
+        {user?.state && (
+          <button
+            onClick={() => setNearMeFilter(!nearMeFilter)}
+            className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${nearMeFilter
+              ? 'bg-primary-100 text-primary-700 border-2 border-primary-500'
+              : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+              }`}
+          >
+            📍 Near Me {user.state && `(${user.state})`}
+          </button>
+        )}
+        {!user?.state && (
+          <span className="text-sm text-gray-400 italic">
+            Add your location in Settings to filter vendors
+          </span>
+        )}
       </div>
 
       {/* Vendor Grid */}

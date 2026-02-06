@@ -11,7 +11,7 @@ const tables = [
     'profiles', 'weddings', 'checklist_items', 'budget_items',
     'guests', 'vendors', 'timeline_events', 'seating_tables',
     'room_elements', 'photos', 'inspiration_boards', 'inspiration_images',
-    'communication_logs'
+    'communication_logs', 'public_rsvp_submissions'
 ];
 
 async function verifyAllTables() {

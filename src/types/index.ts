@@ -199,6 +199,9 @@ export interface AuthUser {
   id: string
   email: string
   name?: string
+  city?: string
+  state?: string
+  zipCode?: string
 }
 
 export interface NotificationPreferences {
