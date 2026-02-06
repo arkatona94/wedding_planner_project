@@ -308,6 +308,77 @@ async function generateWithLocalVton(
 }
 
 /**
+ * Generate virtual try-on using Replicate's IDM-VTON model
+ * Free tier available - ~$0.023 per run, best-in-class quality
+ * Get API token from: https://replicate.com/account/api-tokens
+ */
+export async function generateWithReplicateVton(
+  replicateApiToken: string,
+  bridePhotoUrl: string,
+  dressImageUrl: string
+): Promise<TryOnResult> {
+  try {
+    console.log('Using Replicate IDM-VTON (free tier)...')
+
+    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${replicateApiToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        version: 'c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4',
+        input: {
+          human_img: bridePhotoUrl,
+          garm_img: dressImageUrl,
+          garment_des: 'elegant wedding dress',
+          is_checked: true,
+          is_checked_crop: false,
+          denoise_steps: 30,
+          seed: 42
+        }
+      }),
+    })
+
+    if (!createResponse.ok) {
+      const error = await createResponse.json()
+      throw new Error(error.detail || 'Failed to create prediction')
+    }
+
+    const prediction = await createResponse.json()
+    console.log('Prediction created:', prediction.id)
+
+    let result = prediction
+    while (result.status !== 'succeeded' && result.status !== 'failed') {
+      await sleep(2000)
+      const statusResponse = await fetch(
+        `https://api.replicate.com/v1/predictions/${prediction.id}`,
+        { headers: { 'Authorization': `Bearer ${replicateApiToken}` } }
+      )
+      result = await statusResponse.json()
+      console.log('VTON status:', result.status)
+    }
+
+    if (result.status === 'failed') {
+      throw new Error(result.error || 'Prediction failed')
+    }
+
+    const outputUrl = result.output
+    if (!outputUrl) {
+      throw new Error('No output image returned')
+    }
+
+    return { success: true, imageUrl: outputUrl }
+  } catch (error) {
+    console.error('Replicate VTON error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate with Replicate',
+    }
+  }
+}
+
+/**
  * Helper to get image data (base64 and mime type) from a URL or data URL
  */
 async function getImageData(url: string, imageType: string): Promise<{ base64: string; mimeType: string } | null> {
