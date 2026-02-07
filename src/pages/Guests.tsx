@@ -4,7 +4,7 @@ import { useWeddingStore } from '../store/weddingStore'
 import { QRCodeSVG } from 'qrcode.react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts'
 import { format } from 'date-fns'
-import type { Guest, RSVPStatus } from '../types'
+import type { Guest, RSVPStatus, PartyMember } from '../types'
 import { exportGuestListPDF } from '../utils/exports'
 
 const CHART_COLORS = ['#c97f66', '#9dc183', '#d4af37', '#d4a5a5', '#b5644d', '#7d4336', '#dba08b', '#f3d9d0']
@@ -27,6 +27,7 @@ export default function Guests() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showQRModal, setShowQRModal] = useState(false)
+  const [qrPreviewGuest, setQrPreviewGuest] = useState<Guest | null>(null)
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -48,7 +49,8 @@ export default function Guests() {
     group: '',
     isBrideSide: false,
     isGroomSide: false,
-    notes: ''
+    notes: '',
+    partyMembers: [] as PartyMember[]
   })
 
   const uniqueGroups = [...new Set(guests.map(g => g.group).filter(Boolean))]
@@ -100,7 +102,7 @@ export default function Guests() {
       address: { street: '', city: '', state: '', zipCode: '', country: 'USA' },
       rsvpStatus: 'pending', mealChoice: '', dietaryRestrictions: [],
       plusOne: false, plusOneName: '', tableAssignment: null, group: '',
-      isBrideSide: false, isGroomSide: false, notes: ''
+      isBrideSide: false, isGroomSide: false, notes: '', partyMembers: []
     })
     setShowAddModal(false)
     setEditingGuest(null)
@@ -123,7 +125,8 @@ export default function Guests() {
       group: guest.group,
       isBrideSide: guest.isBrideSide || false,
       isGroomSide: guest.isGroomSide || false,
-      notes: guest.notes
+      notes: guest.notes,
+      partyMembers: guest.partyMembers || []
     })
     setShowAddModal(true)
   }
@@ -174,7 +177,8 @@ export default function Guests() {
           group: values[headers.indexOf('group')] || '',
           isBrideSide: (values[headers.indexOf('side')] || '').toLowerCase().includes('bride'),
           isGroomSide: (values[headers.indexOf('side')] || '').toLowerCase().includes('groom'),
-          notes: values[headers.indexOf('notes')] || ''
+          notes: values[headers.indexOf('notes')] || '',
+          partyMembers: []
         }
         return guest
       }).filter(g => g.firstName || g.lastName)
@@ -467,6 +471,7 @@ export default function Guests() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Meal</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Side</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Group</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Invite Code</th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Actions</th>
                     </tr>
                   </thead>
@@ -505,6 +510,33 @@ export default function Guests() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">{guest.group || '-'}</td>
+                        <td className="px-4 py-3">
+                          {guest.inviteCode ? (
+                            <div className="flex items-center gap-2">
+                              <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
+                                {guest.inviteCode}
+                              </code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(guest.inviteCode || '')
+                                }}
+                                className="text-gray-400 hover:text-primary-600 transition-colors"
+                                title="Copy invite code"
+                              >
+                                📋
+                              </button>
+                              <button
+                                onClick={() => setQrPreviewGuest(guest)}
+                                className="text-gray-400 hover:text-primary-600 transition-colors"
+                                title="Show QR code"
+                              >
+                                📱
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-right">
                           <button onClick={() => startEdit(guest)} className="text-primary-600 hover:underline mr-3">Edit</button>
                           <button onClick={() => deleteGuest(guest.id)} className="text-red-600 hover:underline">Delete</button>
@@ -636,6 +668,34 @@ export default function Guests() {
             <div className="flex justify-center mb-4"><QRCodeSVG value={rsvpUrl} size={200} /></div>
             <p className="text-sm text-gray-500 mb-4">{rsvpUrl}</p>
             <button onClick={() => setShowQRModal(false)} className="btn-primary">Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* QR Preview Modal for Individual Guest */}
+      {qrPreviewGuest && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4 text-center">
+            <h2 className="text-xl font-serif text-gray-800 mb-2">
+              {qrPreviewGuest.firstName} {qrPreviewGuest.lastName}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">Guest Registration QR Code</p>
+            <div className="flex justify-center mb-4">
+              <QRCodeSVG
+                value={`${window.location.origin}/guest/register/${qrPreviewGuest.inviteCode}`}
+                size={200}
+              />
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg mb-4">
+              <p className="text-xs text-gray-500 mb-1">Invite Code</p>
+              <code className="text-lg font-mono font-bold text-primary-600">
+                {qrPreviewGuest.inviteCode}
+              </code>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              {window.location.origin}/guest/register/{qrPreviewGuest.inviteCode}
+            </p>
+            <button onClick={() => setQrPreviewGuest(null)} className="btn-primary">Close</button>
           </div>
         </div>
       )}

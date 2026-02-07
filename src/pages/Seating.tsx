@@ -198,8 +198,34 @@ export default function Seating() {
   const handleDropOnTable = (tableId: string) => {
     if (draggedGuest) {
       const table = tables.find(t => t.id === tableId)
-      if (table && table.guests.length < table.capacity) {
-        assignGuestToTable(draggedGuest, tableId)
+      const guest = guests.find(g => g.id === draggedGuest)
+
+      if (table && guest) {
+        // Calculate total party size: main guest + plus-one + party members
+        const partyMemberCount = guest.partyMembers?.length || 0
+        const plusOneCount = guest.plusOne ? 1 : 0
+        const totalPartySize = 1 + plusOneCount + partyMemberCount
+
+        // Count current seated guests at this table
+        const currentSeated = table.guests.length
+        const availableSeats = table.capacity - currentSeated
+
+        if (totalPartySize <= availableSeats) {
+          // Assign main guest - party members are tracked on the guest record
+          // They share the same table assignment as the primary guest
+          assignGuestToTable(draggedGuest, tableId)
+        } else {
+          // Show warning if not enough seats for entire party
+          const partyDetails = []
+          if (plusOneCount > 0) partyDetails.push('plus-one')
+          if (partyMemberCount > 0) partyDetails.push(`${partyMemberCount} party member${partyMemberCount > 1 ? 's' : ''}`)
+
+          const partyInfo = partyDetails.length > 0
+            ? ` (includes ${partyDetails.join(' and ')})`
+            : ''
+
+          alert(`Not enough seats! ${guest.firstName}'s party needs ${totalPartySize} seats${partyInfo}, but only ${availableSeats} available at ${table.name}.`)
+        }
       }
       setDraggedGuest(null)
     }
@@ -442,8 +468,17 @@ export default function Seating() {
                   onDragStart={() => setDraggedGuest(guest.id)}
                   className="p-3 bg-gray-50 rounded-lg cursor-move hover:bg-gray-100 border border-gray-200 transition-all hover:shadow-sm"
                 >
-                  <p className="font-medium text-gray-800 text-sm">{guest.firstName} {guest.lastName}</p>
-                  <p className="text-xs text-gray-500">{guest.group || 'Individual'}</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-800 text-sm">{guest.firstName} {guest.lastName}</p>
+                      <p className="text-xs text-gray-500">{guest.group || 'Individual'}</p>
+                    </div>
+                    {((guest.plusOne) || (guest.partyMembers && guest.partyMembers.length > 0)) && (
+                      <span className="bg-primary-100 text-primary-700 text-[10px] font-bold px-2 py-1 rounded-full" title="Total seats needed">
+                        👥 {1 + (guest.plusOne ? 1 : 0) + (guest.partyMembers?.length || 0)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))
             )}

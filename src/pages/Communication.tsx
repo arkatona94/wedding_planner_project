@@ -9,7 +9,7 @@ export default function Communication() {
     const guests = useWeddingStore((state) => state.guests)
     const updateGuestCommunication = useWeddingStore((state) => state.updateGuestCommunication)
 
-    const [activeTab, setActiveTab] = useState<'details' | 'guests' | 'qr'>('details')
+    const [activeTab, setActiveTab] = useState<'details' | 'guests' | 'qr' | 'invitations'>('details')
     const [selectedGuests, setSelectedGuests] = useState<string[]>([])
     const [sendingStatus, setSendingStatus] = useState<string | null>(null)
 
@@ -136,6 +136,15 @@ export default function Communication() {
                         }`}
                 >
                     QR Code
+                </button>
+                <button
+                    onClick={() => setActiveTab('invitations')}
+                    className={`px-6 py-3 font-medium transition-colors border-b-2 ${activeTab === 'invitations'
+                        ? 'border-primary-600 text-primary-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                >
+                    📨 Invitations
                 </button>
             </div>
 
@@ -354,6 +363,154 @@ export default function Communication() {
                             <button className="btn-secondary text-sm">
                                 Download QR Code
                             </button>
+                        </div>
+                    )}
+
+                    {activeTab === 'invitations' && (
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                            <div className="p-4 bg-gradient-to-r from-primary-500 to-primary-600 text-white">
+                                <h3 className="text-lg font-medium">Send Wedding Invitations</h3>
+                                <p className="text-sm text-primary-100 mt-1">
+                                    Send personalized invitations with unique registration links for each guest
+                                </p>
+                            </div>
+
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700 flex items-center justify-between gap-4 border-b">
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setSelectedGuests(guests.filter(g => g.inviteCode && g.email).map(g => g.id))}
+                                        className="text-sm text-primary-600 hover:underline"
+                                    >
+                                        Select All with Email
+                                    </button>
+                                    <span className="text-gray-300">|</span>
+                                    <button
+                                        onClick={() => setSelectedGuests([])}
+                                        className="text-sm text-gray-500 hover:underline"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                                <div className="flex gap-2">
+                                    <span className="text-sm text-gray-500">
+                                        {selectedGuests.length} selected
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[400px] overflow-y-auto">
+                                {guests.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500">
+                                        No guests added yet. Go to the Guests page to add some!
+                                    </div>
+                                ) : (
+                                    guests.filter(g => g.inviteCode).map(guest => (
+                                        <div
+                                            key={guest.id}
+                                            onClick={() => toggleGuest(guest.id)}
+                                            className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedGuests.includes(guest.id) ? 'bg-primary-50/50 dark:bg-primary-900/20' : ''}`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedGuests.includes(guest.id)}
+                                                readOnly
+                                                className="rounded text-primary-600 h-5 w-5"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-gray-800 dark:text-gray-200">
+                                                    {guest.firstName} {guest.lastName}
+                                                </p>
+                                                <p className="text-xs text-gray-500 truncate">
+                                                    {guest.email || 'No email'}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <code className="bg-gray-100 dark:bg-gray-600 px-2 py-1 rounded text-xs font-mono">
+                                                    {guest.inviteCode}
+                                                </code>
+                                                <p className="text-[10px] text-gray-400 mt-1">
+                                                    {guest.rsvpStatus === 'pending' ? 'Not yet registered' : guest.rsvpStatus}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700 flex flex-wrap gap-3">
+                                <button
+                                    onClick={async () => {
+                                        setSendingStatus('Sending invitations...')
+                                        let successCount = 0
+                                        let failCount = 0
+
+                                        for (const id of selectedGuests) {
+                                            const guest = guests.find(g => g.id === id)
+                                            if (!guest?.email || !guest?.inviteCode) {
+                                                failCount++
+                                                continue
+                                            }
+
+                                            try {
+                                                const inviteUrl = `${window.location.origin}/guest/register/${guest.inviteCode}`
+                                                await supabase.functions.invoke('send-notification', {
+                                                    body: {
+                                                        weddingId: wedding.id,
+                                                        guestId: id,
+                                                        type: 'invitation',
+                                                        channel: 'email',
+                                                        recipient: guest.email,
+                                                        subject: `You're Invited: ${wedding.partner1Name} & ${wedding.partner2Name}'s Wedding`,
+                                                        html: `
+                                                            <div style="font-family: serif; padding: 20px; text-align: center; max-width: 500px; margin: 0 auto;">
+                                                                <h1 style="color: #c97f66; margin-bottom: 10px;">${wedding.partner1Name} & ${wedding.partner2Name}</h1>
+                                                                <p style="font-size: 18px;">Request the pleasure of your company</p>
+                                                                <p><strong>Date:</strong> ${wedding.weddingDate || 'TBD'}</p>
+                                                                <p><strong>Venue:</strong> ${wedding.ceremonyVenue || 'TBD'}</p>
+                                                                <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;" />
+                                                                <p style="margin-bottom: 5px;">Your personal invite code:</p>
+                                                                <p style="font-family: monospace; font-size: 24px; background: #f5f5f5; padding: 10px; letter-spacing: 2px; font-weight: bold;">${guest.inviteCode}</p>
+                                                                <a href="${inviteUrl}" style="display: inline-block; margin-top: 20px; padding: 12px 30px; background: #c97f66; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                                                                    RSVP Now
+                                                                </a>
+                                                                <p style="margin-top: 20px; font-size: 12px; color: #888;">
+                                                                    Or visit: ${inviteUrl}
+                                                                </p>
+                                                            </div>
+                                                        `
+                                                    }
+                                                })
+                                                updateGuestCommunication(id, 'saveTheDate')
+                                                successCount++
+                                            } catch (err) {
+                                                console.error(`Failed to send to ${guest.firstName}:`, err)
+                                                failCount++
+                                            }
+                                        }
+
+                                        setSendingStatus(`Done! Sent: ${successCount}, Failed: ${failCount}`)
+                                        setSelectedGuests([])
+                                        setTimeout(() => setSendingStatus(null), 5000)
+                                    }}
+                                    disabled={selectedGuests.length === 0}
+                                    className="btn-primary py-2 text-sm flex items-center gap-2"
+                                >
+                                    📧 Send Email Invitations
+                                </button>
+                                <button
+                                    disabled={selectedGuests.length === 0}
+                                    className="btn-secondary py-2 text-sm flex items-center gap-2 opacity-50 cursor-not-allowed"
+                                    title="Coming soon"
+                                >
+                                    🖨️ Download Print Cards (PDF)
+                                </button>
+                            </div>
+
+                            {sendingStatus && (
+                                <div className="p-3 bg-blue-50 text-blue-700 text-sm text-center">
+                                    {sendingStatus}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

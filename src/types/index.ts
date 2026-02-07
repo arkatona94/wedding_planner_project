@@ -59,6 +59,14 @@ export interface BudgetItem {
   notes: string
 }
 
+export interface PartyMember {
+  id: string
+  name: string
+  mealChoice: string
+  dietaryRestrictions: string[]
+  isChild: boolean
+}
+
 export interface Guest {
   id: string
   firstName: string
@@ -76,6 +84,10 @@ export interface Guest {
   isBrideSide: boolean
   isGroomSide: boolean
   notes: string
+  // Guest self-registration
+  inviteCode?: string
+  userId?: string
+  partyMembers: PartyMember[]
   // Communication tracking
   saveTheDateSent?: boolean
   reminderSent?: boolean
@@ -193,6 +205,8 @@ export interface AppSettings {
   bridePhoto?: string // URL for bride photo used in AI dress try-on
   geminiApiKey?: string // Google Gemini API key for AI features
   vtonApiUrl?: string // Optional custom API for FASHN VTON
+  replicateApiToken?: string // Replicate API token for IDM-VTON (best quality)
+  fashnApiKey?: string // FASHN API key for official try-on v1.6
 }
 
 export interface AuthUser {

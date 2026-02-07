@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
-import { generateDressTryOn } from '../lib/gemini'
+import { generateDressTryOn, generateWithFashnApi } from '../lib/gemini'
 import { compressImage, fileToCompressedDataUrl } from '../lib/imageUtils'
 import type { BoardCategory, InspirationBoard, InspirationImage } from '../types'
 
@@ -489,9 +489,9 @@ export default function Inspiration() {
       return
     }
 
-    // Check if API key exists (only if not using local VTON)
-    if (!appSettings.geminiApiKey && !appSettings.vtonApiUrl) {
-      if (confirm('You need to add your Google Gemini API key or a Local VTON URL to use the Try On feature. Go to Settings?')) {
+    // Check if API key exists (only if not using local VTON or FASHN)
+    if (!appSettings.geminiApiKey && !appSettings.vtonApiUrl && !appSettings.fashnApiKey) {
+      if (confirm('You need to add an API key to use the Try On feature. Go to Settings?')) {
         navigate('/settings')
       }
       return
@@ -511,12 +511,23 @@ export default function Inspiration() {
     setIsGeneratingTryOn(true)
 
     try {
-      const result = await generateDressTryOn(
-        appSettings.geminiApiKey || '',
-        appSettings.bridePhoto,
-        image.url,
-        appSettings.vtonApiUrl
-      )
+      let result;
+
+      // Priority: FASHN API > Local VTON > Gemini
+      if (appSettings.fashnApiKey) {
+        result = await generateWithFashnApi(
+          appSettings.fashnApiKey,
+          appSettings.bridePhoto,
+          image.url
+        )
+      } else {
+        result = await generateDressTryOn(
+          appSettings.geminiApiKey || '',
+          appSettings.bridePhoto,
+          image.url,
+          appSettings.vtonApiUrl
+        )
+      }
 
       if (result.success && result.imageUrl) {
         setTryOnResult(result.imageUrl)
@@ -532,7 +543,7 @@ export default function Inspiration() {
     } finally {
       setIsGeneratingTryOn(false)
     }
-  }, [appSettings.bridePhoto, appSettings.geminiApiKey, appSettings.vtonApiUrl, navigate, selectedBoard, updateBoardImage])
+  }, [appSettings.bridePhoto, appSettings.geminiApiKey, appSettings.vtonApiUrl, appSettings.fashnApiKey, navigate, selectedBoard, updateBoardImage])
 
   const closeTryOnModal = () => {
     setTryOnImage(null)

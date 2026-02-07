@@ -136,6 +136,7 @@ interface WeddingState {
   // User & Auth
   user: AuthUser | null
   setUser: (user: AuthUser | null) => void
+  updateUser: (updates: Partial<AuthUser>) => Promise<void>
   signOut: () => Promise<void>
 
   // Maintenance
@@ -282,6 +283,29 @@ export const useWeddingStore = create<WeddingState>()(
       // User & Auth
       user: null,
       setUser: (user) => set({ user }),
+      updateUser: async (updates) => {
+        const state = get()
+        if (!state.user) return
+
+        // Update local state
+        set({ user: { ...state.user, ...updates } })
+
+        // Sync to Supabase profiles table
+        const dbUpdates: Record<string, any> = {}
+        if (updates.name !== undefined) dbUpdates.full_name = updates.name
+        if (updates.city !== undefined) dbUpdates.city = updates.city
+        if (updates.state !== undefined) dbUpdates.state = updates.state
+        if (updates.zipCode !== undefined) dbUpdates.zip_code = updates.zipCode
+
+        if (Object.keys(dbUpdates).length > 0) {
+          const { error } = await supabase
+            .from('profiles')
+            .update(dbUpdates)
+            .eq('id', state.user.id)
+
+          if (error) console.error('Error updating user profile:', error)
+        }
+      },
       signOut: async () => {
         await supabase.auth.signOut()
         set({ user: null })
@@ -405,9 +429,20 @@ export const useWeddingStore = create<WeddingState>()(
       guests: [],
       setGuests: (guests) => set({ guests }),
       addGuest: (guest) =>
-        set((state) => ({
-          guests: [...state.guests, { ...guest, id: uuidv4() }]
-        })),
+        set((state) => {
+          // Generate 8-character alphanumeric invite code
+          const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Removed confusing chars: 0, O, I, 1
+          const inviteCode = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+
+          return {
+            guests: [...state.guests, {
+              ...guest,
+              id: uuidv4(),
+              inviteCode,
+              partyMembers: guest.partyMembers || []
+            }]
+          }
+        }),
       updateGuest: (id, updates) =>
         set((state) => ({
           guests: state.guests.map((guest) =>

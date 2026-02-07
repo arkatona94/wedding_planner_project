@@ -21,6 +21,8 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import RSVP from './pages/RSVP'
+import GuestRegister from './pages/GuestRegister'
+import GuestPortal from './pages/GuestPortal'
 import { useWeddingStore } from './store/weddingStore'
 import { Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
@@ -139,7 +141,10 @@ function App() {
           isBrideSide: item.is_bride_side,
           isGroomSide: item.is_groom_side,
           address: item.address as any,
-          notes: item.notes || ''
+          notes: item.notes || '',
+          inviteCode: (item as any).invite_code || '',
+          userId: (item as any).user_id || undefined,
+          partyMembers: (item as any).party_members || []
         })))
       }
 
@@ -235,6 +240,9 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/rsvp/:weddingId" element={<RSVP />} />
+      <Route path="/guest/register" element={<GuestRegister />} />
+      <Route path="/guest/register/:inviteCode" element={<GuestRegister />} />
+      <Route path="/guest/portal" element={<GuestPortal />} />
 
       {/* Main app with Layout - Protected */}
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>

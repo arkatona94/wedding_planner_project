@@ -379,6 +379,101 @@ export async function generateWithReplicateVton(
 }
 
 /**
+ * Generate virtual try-on using official FASHN API v1.6
+ * Best quality option - get API key at fashn.ai
+ */
+export async function generateWithFashnApi(
+  fashnApiKey: string,
+  bridePhotoUrl: string,
+  dressImageUrl: string
+): Promise<TryOnResult> {
+  try {
+    console.log('Using official FASHN API v1.6...')
+
+    // Get image data for both images
+    const brideImageData = await getImageData(bridePhotoUrl, 'bride photo')
+    const dressImageData = await getImageData(dressImageUrl, 'dress image')
+
+    if (!brideImageData || !dressImageData) {
+      throw new Error('Failed to load images for FASHN')
+    }
+
+    // Submit the try-on request
+    const createResponse = await fetch('https://api.fashn.ai/v1/run', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${fashnApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model_name: 'tryon-v1.6',
+        inputs: {
+          model_image: `data:${brideImageData.mimeType};base64,${brideImageData.base64}`,
+          garment_image: `data:${dressImageData.mimeType};base64,${dressImageData.base64}`
+        },
+        category: 'one-pieces', // Wedding dresses
+        mode: 'quality', // Best quality
+        moderation_level: 'conservative',
+        output_format: 'jpeg',
+        return_base64: true
+      }),
+    })
+
+    if (!createResponse.ok) {
+      const error = await createResponse.json()
+      throw new Error(error.error || error.message || 'Failed to create FASHN prediction')
+    }
+
+    const prediction = await createResponse.json()
+    console.log('FASHN prediction created:', prediction.id)
+
+    // Poll for completion
+    let result = prediction
+    let attempts = 0
+    const maxAttempts = 60 // 2 minutes timeout
+
+    while (result.status !== 'completed' && result.status !== 'failed' && attempts < maxAttempts) {
+      await sleep(2000)
+      attempts++
+
+      const statusResponse = await fetch(`https://api.fashn.ai/v1/status/${prediction.id}`, {
+        headers: { 'Authorization': `Bearer ${fashnApiKey}` }
+      })
+      result = await statusResponse.json()
+      console.log('FASHN status:', result.status)
+    }
+
+    if (result.status === 'failed') {
+      throw new Error(result.error || 'FASHN prediction failed')
+    }
+
+    if (result.status !== 'completed') {
+      throw new Error('FASHN prediction timed out')
+    }
+
+    // Get the output image
+    const outputImage = result.output?.[0]
+    if (!outputImage) {
+      throw new Error('No output image returned from FASHN')
+    }
+
+    // If it's already a base64 data URL, use it directly
+    if (outputImage.startsWith('data:')) {
+      return { success: true, imageUrl: outputImage }
+    }
+
+    // Otherwise it's a CDN URL
+    return { success: true, imageUrl: outputImage }
+  } catch (error) {
+    console.error('FASHN API error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate with FASHN API',
+    }
+  }
+}
+
+/**
  * Helper to get image data (base64 and mime type) from a URL or data URL
  */
 async function getImageData(url: string, imageType: string): Promise<{ base64: string; mimeType: string } | null> {

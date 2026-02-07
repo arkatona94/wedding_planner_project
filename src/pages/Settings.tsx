@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { format } from 'date-fns'
-import { CheckCircle2, LayoutDashboard, Calculator, Users, Globe, Grid, Clock, Camera, Sparkles, Scale, Wand2 } from 'lucide-react'
+import { CheckCircle2, LayoutDashboard, Calculator, Users, Globe, Grid, Clock, Camera, Sparkles, Scale, Wand2, Key } from 'lucide-react'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
 
 const modules = [
@@ -122,6 +122,43 @@ export default function Settings() {
             >
               Change Password
             </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Location Settings */}
+      <div className="card">
+        <h3 className="font-medium text-gray-800 mb-4">Location</h3>
+        <p className="text-sm text-gray-500 mb-4">Your location helps us provide accurate pricing estimates and local vendor suggestions.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="e.g. Los Angeles"
+              value={user?.city || ''}
+              onChange={(e) => {
+                const { updateUser } = useWeddingStore.getState()
+                updateUser({ city: e.target.value })
+              }}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+            <select
+              className="input-field"
+              value={user?.state || ''}
+              onChange={(e) => {
+                const { updateUser } = useWeddingStore.getState()
+                updateUser({ state: e.target.value })
+              }}
+            >
+              <option value="">Select State</option>
+              {['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -297,6 +334,79 @@ export default function Settings() {
               />
               <p className="mt-1 text-[10px] text-gray-400">
                 Recommended for users with local GPU running `vton_server.py`
+              </p>
+            </div>
+          </div>
+
+          {/* Replicate API Token */}
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-700 flex items-center gap-2">
+                  <Key className="w-4 h-4 text-gray-400" />
+                  Replicate API Token
+                </h4>
+                <p className="text-sm text-gray-500">
+                  Best quality virtual try-on (~$0.02/image)
+                </p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <input
+                type="password"
+                placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                className="input-field text-sm font-mono"
+                defaultValue={appSettings.replicateApiToken || ''}
+                onBlur={(e) => {
+                  const token = e.target.value.trim()
+                  updateAppSettings({ replicateApiToken: token || undefined })
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const token = (e.target as HTMLInputElement).value.trim()
+                    updateAppSettings({ replicateApiToken: token || undefined })
+                  }
+                }}
+              />
+              <p className="mt-1 text-[10px] text-gray-400">
+                Get your token at <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">replicate.com/account/api-tokens</a>
+              </p>
+            </div>
+          </div>
+
+          {/* FASHN API Key (Recommended) */}
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-700 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary-500" />
+                  FASHN API Key
+                  <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">RECOMMENDED</span>
+                </h4>
+                <p className="text-sm text-gray-500">
+                  Best quality virtual try-on (official FASHN v1.6)
+                </p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <input
+                type="password"
+                placeholder="fa-xxxxxxxxxxxxxxxxxxxx"
+                className="input-field text-sm font-mono"
+                defaultValue={appSettings.fashnApiKey || ''}
+                onBlur={(e) => {
+                  const key = e.target.value.trim()
+                  updateAppSettings({ fashnApiKey: key || undefined })
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const key = (e.target as HTMLInputElement).value.trim()
+                    updateAppSettings({ fashnApiKey: key || undefined })
+                  }
+                }}
+              />
+              <p className="mt-1 text-[10px] text-gray-400">
+                Get your key at <a href="https://fashn.ai" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">fashn.ai</a> - Recommended for highest quality results
               </p>
             </div>
           </div>

@@ -21,7 +21,8 @@ const modules = [
 export default function Register() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [name, setName] = useState('')
+    const [brideName, setBrideName] = useState('')
+    const [groomName, setGroomName] = useState('')
     const [city, setCity] = useState('')
     const [state, setState] = useState('')
     const [selectedModules, setSelectedModules] = useState<string[]>(['dashboard', 'checklist', 'budget'])
@@ -51,7 +52,9 @@ export default function Register() {
                 password,
                 options: {
                     data: {
-                        full_name: name,
+                        full_name: `${brideName} & ${groomName}`,
+                        bride_name: brideName,
+                        groom_name: groomName,
                         enabled_modules: selectedModules,
                         city: city,
                         state: state
@@ -66,7 +69,7 @@ export default function Register() {
                 setUser({
                     id: data.user.id,
                     email: data.user.email!,
-                    name: name,
+                    name: `${brideName} & ${groomName}`,
                     city: city,
                     state: state
                 })
@@ -87,7 +90,7 @@ export default function Register() {
                         await supabase.from('profiles').insert({
                             id: data.user.id,
                             email: data.user.email,
-                            full_name: name,
+                            full_name: `${brideName} & ${groomName}`,
                             app_settings: { enabledModules: selectedModules, darkMode: false }
                         })
                     }
@@ -97,8 +100,8 @@ export default function Register() {
                         .from('weddings')
                         .insert({
                             user_id: data.user.id,
-                            partner1_name: name.split('&')[0]?.trim() || 'Partner 1',
-                            partner2_name: name.split('&')[1]?.trim() || 'Partner 2',
+                            partner1_name: brideName || 'Partner 1',
+                            partner2_name: groomName || 'Partner 2',
                             total_budget: 30000,
                             estimated_guests: 100
                         })
@@ -160,16 +163,29 @@ export default function Register() {
                             </div>
                         )}
                         <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="input-field mt-1"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="Alex & Sam"
-                                />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Bride Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="input-field mt-1"
+                                        value={brideName}
+                                        onChange={(e) => setBrideName(e.target.value)}
+                                        placeholder="e.g. Sarah"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Groom Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="input-field mt-1"
+                                        value={groomName}
+                                        onChange={(e) => setGroomName(e.target.value)}
+                                        placeholder="e.g. Michael"
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Email Address</label>
@@ -310,7 +326,7 @@ export default function Register() {
                                         setUser({
                                             id: 'dev-user-id',
                                             email: 'dev@test.com',
-                                            name: name || 'Dev Tester'
+                                            name: brideName && groomName ? `${brideName} & ${groomName}` : 'Dev Tester'
                                         })
                                         updateAppSettings({ enabledModules: selectedModules })
                                         navigate('/')
