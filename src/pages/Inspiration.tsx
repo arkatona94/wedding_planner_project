@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Sparkles } from 'lucide-react'
 import { useWeddingStore } from '../store/weddingStore'
-import { generateDressTryOn, generateWithFashnApi, generateWithReplicateVton } from '../lib/gemini'
+import { generateWithFashnApi, generateWithReplicateVton } from '../lib/gemini'
 import { compressImage, fileToCompressedDataUrl } from '../lib/imageUtils'
 import type { BoardCategory, InspirationBoard, InspirationImage } from '../types'
 
@@ -490,13 +490,9 @@ export default function Inspiration() {
       return
     }
 
-    // Check if API key exists (only if not using local VTON or FASHN)
-    if (!appSettings.geminiApiKey && !appSettings.vtonApiUrl && !appSettings.fashnApiKey) {
-      if (confirm('You need to add an API key to use the Try On feature. Go to Settings?')) {
-        navigate('/settings')
-      }
-      return
-    }
+    // VTON uses free endpoint for generation, but can use Gemini API key for better prompts if available.
+    // We don't block if key is missing, just proceed with basic description.
+
 
     // If we already have a try-on for this image, just show it
     if (image.tryOnUrl) {
@@ -530,13 +526,17 @@ export default function Inspiration() {
           image.url
         )
       } else {
-        setTryOnStatus('Analyzing with Gemini AI...')
-        result = await generateDressTryOn(
-          appSettings.geminiApiKey || '',
+        setTryOnStatus('Visualizing with IDM-VTON...')
+        // Use the new VTON utility
+        const { tryOnDress } = await import('../lib/vton')
+        const imageUrl = await tryOnDress(
           appSettings.bridePhoto,
           image.url,
-          appSettings.vtonApiUrl
+          image.notes || "A wedding dress",
+          appSettings.geminiApiKey // Use user's key to enhance description
         )
+
+        result = { success: true, imageUrl }
       }
 
       if (result.success && result.imageUrl) {

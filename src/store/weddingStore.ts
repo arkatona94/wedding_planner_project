@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
 import { supabase } from '../lib/supabase'
 import { fileToCompressedDataUrl, dataUrlToFile } from '../lib/imageUtils'
+import { generateAllVendors } from '../utils/vendorGenerator'
 import type {
   WeddingDetails,
   ChecklistItem,
@@ -143,6 +144,7 @@ interface WeddingState {
   // Maintenance
   recalculateBudget: () => void
   populateDefaultBudget: () => void
+  fetchVendorsForLocation: (city: string, state: string) => void
 }
 
 const defaultWedding: WeddingDetails = {
@@ -563,7 +565,7 @@ export const useWeddingStore = create<WeddingState>()(
       updateVendor: (id, updates) =>
         set((state) => {
           const updatedVendors = state.vendors.map((vendor) =>
-            vendor.id === id ? { ...vendor, ...updates } : vendor
+            vendor.id === id ? { ...vendor, ...updates, isGenerated: false } : vendor
           )
           const updatedVendor = updatedVendors.find(v => v.id === id)
 
@@ -924,7 +926,10 @@ export const useWeddingStore = create<WeddingState>()(
           let currentBudgetItems = state.budgetItems
 
           // 1. Update/Add items for all existing vendors
-          const vendorBudgetItems = vendors.map((vendor) => {
+          // Exclude generated vendors unless they are contracted (user booked them)
+          const validVendors = vendors.filter(v => !v.isGenerated || v.contracted)
+
+          const vendorBudgetItems = validVendors.map((vendor) => {
             const budgetCategory = vendorCategoryMap[vendor.category] || 'Other'
             const existingItem = currentBudgetItems.find(item => item.vendorId === vendor.id)
 
@@ -953,6 +958,28 @@ export const useWeddingStore = create<WeddingState>()(
         set(() => ({
           budgetItems: defaultBudget
         })),
+
+      fetchVendorsForLocation: (city: string, state: string) => {
+        if (!city || !state) return
+
+        set((storeState) => {
+          // Generate realistic vendors
+          const directoryVendors = generateAllVendors(city, state)
+
+          // Filter out previous generated vendors, keep user's manual ones
+          const existingManualVendors = storeState.vendors.filter(v =>
+            !v.isGenerated && !v.notes.includes('Generated Suggestion')
+          )
+
+          // Combine manual + new directory
+          // Note: This replaces all generated vendors.
+          // If a user "saved" a generated vendor, they should have edited it (clearing isGenerated)
+          // or we assume they want the refreshed list
+          return {
+            vendors: [...existingManualVendors, ...directoryVendors]
+          }
+        })
+      },
 
       // Storage
       uploadFile: async (bucket, file, path) => {

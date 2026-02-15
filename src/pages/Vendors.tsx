@@ -256,11 +256,29 @@ export default function Vendors() {
                     )}
                   </div>
                 )}
+                {vendor.address && (
+                  <p className="text-gray-600 truncate">{vendor.address}</p>
+                )}
+                {vendor.notes && vendor.notes.includes('Generated Suggestion.') && (
+                  <p className="text-xs text-gray-500 italic mt-2 line-clamp-2">
+                    "{vendor.notes.split('Generated Suggestion. ')[1]}"
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-yellow-500">{renderStars(vendor.rating)}</span>
-                <span className="font-medium text-gray-800">${vendor.price.toLocaleString()}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-500">{renderStars(vendor.rating)}</span>
+                  {vendor.reviewCount && (
+                    <span className="text-xs text-gray-400">({vendor.reviewCount})</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {vendor.costRange && (
+                    <span className="text-gray-500 font-medium text-sm">{vendor.costRange}</span>
+                  )}
+                  <span className="font-medium text-gray-800">${vendor.price.toLocaleString()}</span>
+                </div>
               </div>
               {(vendor.contracted || vendor.depositPaid) && (
                 <div className="mt-2 text-sm space-y-1">

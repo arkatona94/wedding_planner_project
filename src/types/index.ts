@@ -119,6 +119,11 @@ export interface Vendor {
   depositPaid: boolean
   depositAmount?: number
   tags?: string[]
+  reviewCount?: number
+  costRange?: string
+  address?: string
+  description?: string
+  isGenerated?: boolean
 }
 
 export type VendorCategory =

@@ -56,6 +56,17 @@ function App() {
 
       if (!error && data) {
         if (data.app_settings) {
+          // Ensure env vars are picked up if missing in stored profile
+          const envGeminiKey = import.meta.env.VITE_GEMINI_API_KEY
+          const envFashnKey = import.meta.env.VITE_FASHN_API_KEY
+
+          if (!data.app_settings.geminiApiKey && envGeminiKey) {
+            data.app_settings.geminiApiKey = envGeminiKey
+          }
+          if (!data.app_settings.fashnApiKey && envFashnKey) {
+            data.app_settings.fashnApiKey = envFashnKey
+          }
+
           updateAppSettings(data.app_settings)
         }
         return {
