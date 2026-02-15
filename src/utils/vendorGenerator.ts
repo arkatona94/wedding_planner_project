@@ -161,7 +161,8 @@ function generatePhone(state: string): string {
         'CA': ['310', '415', '619', '408'],
         'TX': ['713', '214', '512', '817'],
         'FL': ['305', '407', '813', '954'],
-        'IL': ['312', '773', '847', '630']
+        'IL': ['312', '773', '847', '630'],
+        'TN': ['615', '629', '865', '901']
     }
 
     const codes = areaCodes[state] || ['555']
@@ -259,10 +260,16 @@ export function getAllVendorsForLocation(
  * Currently returns false - would check against actual data sources
  */
 export function hasRealVendorData(state: string, city?: string): boolean {
-    // Currently only have real data for Ohio/Cincinnati area
+    // Currently only have real data for Ohio/Cincinnati and Tennessee/Nashville area
     if (state.toUpperCase() === 'OH') {
         const ohioCities = ['cincinnati', 'hamilton', 'west chester', 'loveland', 'liberty township']
         if (!city || ohioCities.includes(city.toLowerCase())) {
+            return true
+        }
+    }
+    if (state.toUpperCase() === 'TN') {
+        const tnCities = ['nashville']
+        if (!city || tnCities.includes(city.toLowerCase())) {
             return true
         }
     }

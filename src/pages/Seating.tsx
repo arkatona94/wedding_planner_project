@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useState, useRef, useMemo } from 'react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
+import html2canvas from 'html2canvas'
 import { useWeddingStore } from '../store/weddingStore'
 import type { Table } from '../types'
 
@@ -291,120 +292,104 @@ export default function Seating() {
     }
   }
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.getWidth()
-    let yPos = 20
+  const handleExportPDF = async () => {
+    if (!floorPlanRef.current) return
 
-    // Header
+    const doc = new jsPDF('l', 'mm', 'a4') // Landscape for better floor plan fit
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+
+    // 1. Capture Floor Plan
+    const canvas = await html2canvas(floorPlanRef.current.querySelector('div') as HTMLElement, {
+      scale: 2, // Higher quality
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    })
+
+    const imgData = canvas.toDataURL('image/png')
+
+    // Header for Page 1
     doc.setFontSize(22)
     doc.setTextColor(51, 65, 85)
-    doc.text('Wedding Seating Chart', pageWidth / 2, yPos, { align: 'center' })
+    doc.text('Wedding Floor Plan', pageWidth / 2, 15, { align: 'center' })
+
+    // Adjust image to fit page while maintaining aspect ratio
+    const imgWidth = pageWidth - 20
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    let finalImgHeight = imgHeight
+    let finalImgWidth = imgWidth
+
+    if (imgHeight > pageHeight - 30) {
+      finalImgHeight = pageHeight - 30
+      finalImgWidth = (canvas.width * finalImgHeight) / canvas.height
+    }
+
+    doc.addImage(imgData, 'PNG', (pageWidth - finalImgWidth) / 2, 20, finalImgWidth, finalImgHeight)
+
+    // 2. Guest List Sheet
+    doc.addPage('a4', 'p') // Portrait for the list
+    const pWidth = doc.internal.pageSize.getWidth()
+    let yPos = 20
+
+    doc.setFontSize(22)
+    doc.setTextColor(51, 65, 85)
+    doc.text('Guest Seating List', pWidth / 2, yPos, { align: 'center' })
 
     yPos += 15
     doc.setFontSize(10)
     doc.setTextColor(100, 116, 139)
-    doc.text(`${seatedCount} seated of ${guestsToSeat.length} total guests`, pageWidth / 2, yPos, { align: 'center' })
+    doc.text(`${seatedCount} seated of ${guestsToSeat.length} total guests`, pWidth / 2, yPos, { align: 'center' })
 
     yPos += 15
 
-    // Tables
     const sortedTables = [...tables].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
 
     sortedTables.forEach((table) => {
       const tableGuests = getTableGuests(table.id)
-      const isHead = table.name.toLowerCase().includes('head') || table.capacity >= 10
-
-      const guestLineHeight = 10
-      const headerHeight = 25
-      const footerPadding = 15
-      const guestsNeededHeight = Math.max(1, tableGuests.length) * guestLineHeight
-      const boxHeight = Math.max(60, headerHeight + guestsNeededHeight + footerPadding)
+      const guestLineHeight = 7
+      const headerHeight = 15
+      const boxHeight = Math.max(25, headerHeight + (tableGuests.length * guestLineHeight) + 5)
 
       if (yPos + boxHeight > doc.internal.pageSize.getHeight() - 20) {
         doc.addPage()
         yPos = 20
       }
 
-      doc.setDrawColor(226, 232, 240)
-      doc.setFillColor(248, 250, 252)
-      doc.roundedRect(15, yPos, pageWidth - 30, boxHeight, 3, 3, 'FD')
-
-      const innerY = yPos + 12
+      // Table Name Header
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(51, 65, 85)
-      doc.text(table.name, 25, innerY)
+      doc.text(table.name, 20, yPos)
 
       doc.setFontSize(9)
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(148, 163, 184)
-      doc.text(`Capacity: ${table.capacity}`, 25, innerY + 7)
+      doc.text(`(${tableGuests.length}/${table.capacity} seats filled)`, 20 + doc.getTextWidth(table.name) + 5, yPos)
 
-      doc.setFontSize(12)
+      yPos += 8
+
+      // Divider line
+      doc.setDrawColor(226, 232, 240)
+      doc.line(20, yPos - 2, pWidth - 20, yPos - 2)
+
+      // Guest List
+      doc.setFontSize(11)
       doc.setTextColor(71, 85, 105)
-      const listStartY = innerY + 18
 
       if (tableGuests.length === 0) {
         doc.setFont('helvetica', 'italic')
-        doc.text('No guests seated', 30, listStartY)
+        doc.text('No guests seated at this table', 25, yPos + 5)
+        yPos += 12
       } else {
         tableGuests.forEach((guest, gIdx) => {
-          doc.text(`• ${guest.firstName} ${guest.lastName}`, 30, listStartY + (gIdx * guestLineHeight))
+          doc.text(`${guest.firstName} ${guest.lastName}`, 25, yPos + 5 + (gIdx * guestLineHeight))
         })
+        yPos += (tableGuests.length * guestLineHeight) + 10
       }
 
-      const visualX = pageWidth - 60
-      const visualSize = isHead ? 40 : 25
-      const visualYCenter = yPos + (boxHeight / 2) - 5
-      const visualY = visualYCenter - (visualSize / 2)
-
-      doc.setDrawColor(203, 213, 225)
-      doc.setLineWidth(0.5)
-
-      if (table.shape === 'round') {
-        doc.ellipse(visualX + visualSize / 2, visualY + visualSize / 2, visualSize / 2, visualSize / 2, 'S')
-      } else if (table.shape === 'rectangular') {
-        const rectWidth = isHead ? 40 : 30
-        const rectHeight = isHead ? 15 : 20
-        doc.roundedRect(visualX + (visualSize - rectWidth) / 2, visualY + (visualSize - rectHeight) / 2, rectWidth, rectHeight, 2, 2, 'S')
-      } else {
-        doc.roundedRect(visualX + (visualSize - 25) / 2, visualY + (visualSize - 25) / 2, 25, 25, 2, 2, 'S')
-      }
-
-      doc.setFontSize(8)
-      doc.text(`${tableGuests.length}/${table.capacity}`, visualX + visualSize / 2, visualY + visualSize + 6, { align: 'center' })
-
-      yPos += boxHeight + 8
+      yPos += 5 // Spacing between tables
     })
-
-    // Room Elements
-    if (roomElements.length > 0) {
-      if (yPos > doc.internal.pageSize.getHeight() - 40) {
-        doc.addPage()
-        yPos = 20
-      }
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(51, 65, 85)
-      doc.text('Room Decorations', 15, yPos)
-      yPos += 10
-
-      roomElements.forEach(el => {
-        if (yPos > doc.internal.pageSize.getHeight() - 30) {
-          doc.addPage()
-          yPos = 20
-        }
-        doc.setDrawColor(241, 245, 249)
-        doc.setFillColor(248, 250, 252)
-        doc.roundedRect(15, yPos, pageWidth - 30, 15, 2, 2, 'FD')
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(71, 85, 105)
-        doc.text(`${el.icon} ${el.label}`, 25, yPos + 10)
-        yPos += 20
-      })
-    }
 
     doc.save('Wedding_Seating_Chart.pdf')
   }

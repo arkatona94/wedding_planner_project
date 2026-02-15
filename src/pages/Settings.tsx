@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { format } from 'date-fns'
-import { CheckCircle2, LayoutDashboard, Calculator, Users, Globe, Grid, Clock, Camera, Sparkles, Scale, Wand2, Key } from 'lucide-react'
+import { CheckCircle2, LayoutDashboard, Calculator, Users, Globe, Grid, Clock, Camera, Sparkles, Scale, Wand2 } from 'lucide-react'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
 
 const modules = [
@@ -24,7 +24,6 @@ export default function Settings() {
   const [showClearModal, setShowClearModal] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [isUploadingBridePhoto, setIsUploadingBridePhoto] = useState(false)
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false)
 
   const handleBridePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -234,182 +233,6 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Google Gemini API Key */}
-          <div className="pt-4 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-gray-700">Google Gemini API Key</h4>
-                <p className="text-sm text-gray-500">
-                  Required for AI dress try-on feature
-                </p>
-              </div>
-              {appSettings.geminiApiKey ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-green-600 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Key saved
-                  </span>
-                  <button
-                    onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-                    className="text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    {showApiKeyInput ? 'Hide' : 'Change'}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-                  className="btn-secondary text-sm py-1.5"
-                >
-                  Add API Key
-                </button>
-              )}
-            </div>
-
-            {showApiKeyInput && (
-              <div className="mt-3">
-                <input
-                  type="password"
-                  placeholder="AIza..."
-                  className="input-field text-sm"
-                  defaultValue={appSettings.geminiApiKey || ''}
-                  onBlur={(e) => {
-                    const key = e.target.value.trim()
-                    if (key) {
-                      updateAppSettings({ geminiApiKey: key })
-                      setShowApiKeyInput(false)
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const key = (e.target as HTMLInputElement).value.trim()
-                      if (key) {
-                        updateAppSettings({ geminiApiKey: key })
-                        setShowApiKeyInput(false)
-                      }
-                    }
-                  }}
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Get your API key from{' '}
-                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
-                    Google AI Studio
-                  </a>
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Local VTON API URL */}
-          <div className="pt-4 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-gray-400" />
-                  Local VTON API URL
-                </h4>
-                <p className="text-sm text-gray-500">
-                  Optional: Use a local FASHN VTON server instead of Gemini
-                </p>
-              </div>
-            </div>
-            <div className="mt-3">
-              <input
-                type="text"
-                placeholder="http://localhost:8000"
-                className="input-field text-sm font-mono"
-                defaultValue={appSettings.vtonApiUrl || ''}
-                onBlur={(e) => {
-                  const url = e.target.value.trim()
-                  updateAppSettings({ vtonApiUrl: url || undefined })
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const url = (e.target as HTMLInputElement).value.trim()
-                    updateAppSettings({ vtonApiUrl: url || undefined })
-                  }
-                }}
-              />
-              <p className="mt-1 text-[10px] text-gray-400">
-                Recommended for users with local GPU running `vton_server.py`
-              </p>
-            </div>
-          </div>
-
-          {/* Replicate API Token */}
-          <div className="pt-4 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                  <Key className="w-4 h-4 text-gray-400" />
-                  Replicate API Token
-                </h4>
-                <p className="text-sm text-gray-500">
-                  Best quality virtual try-on (~$0.02/image)
-                </p>
-              </div>
-            </div>
-            <div className="mt-3">
-              <input
-                type="password"
-                placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                className="input-field text-sm font-mono"
-                defaultValue={appSettings.replicateApiToken || ''}
-                onBlur={(e) => {
-                  const token = e.target.value.trim()
-                  updateAppSettings({ replicateApiToken: token || undefined })
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const token = (e.target as HTMLInputElement).value.trim()
-                    updateAppSettings({ replicateApiToken: token || undefined })
-                  }
-                }}
-              />
-              <p className="mt-1 text-[10px] text-gray-400">
-                Get your token at <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">replicate.com/account/api-tokens</a>
-              </p>
-            </div>
-          </div>
-
-          {/* FASHN API Key (Recommended) */}
-          <div className="pt-4 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary-500" />
-                  FASHN API Key
-                  <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">RECOMMENDED</span>
-                </h4>
-                <p className="text-sm text-gray-500">
-                  Best quality virtual try-on (official FASHN v1.6)
-                </p>
-              </div>
-            </div>
-            <div className="mt-3">
-              <input
-                type="password"
-                placeholder="fa-xxxxxxxxxxxxxxxxxxxx"
-                className="input-field text-sm font-mono"
-                defaultValue={appSettings.fashnApiKey || ''}
-                onBlur={(e) => {
-                  const key = e.target.value.trim()
-                  updateAppSettings({ fashnApiKey: key || undefined })
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const key = (e.target as HTMLInputElement).value.trim()
-                    updateAppSettings({ fashnApiKey: key || undefined })
-                  }
-                }}
-              />
-              <p className="mt-1 text-[10px] text-gray-400">
-                Get your key at <a href="https://fashn.ai" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">fashn.ai</a> - Recommended for highest quality results
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -662,9 +485,9 @@ export default function Settings() {
 
       {/* About */}
       <div className="card">
-        <h3 className="font-medium text-gray-800 mb-4">About EverAfter</h3>
+        <h3 className="font-medium text-gray-800 mb-4">About Beginnings and Endings</h3>
         <p className="text-sm text-gray-600 mb-4">
-          EverAfter is your all-in-one wedding planning command center. We combined the best features
+          Beginnings and Endings is your all-in-one wedding planning command center. We combined the best features
           from top wedding planning apps to create a single, comprehensive solution that reduces the
           stress of wedding planning.
         </p>

@@ -161,7 +161,7 @@ export default function Layout() {
         <div className="p-6 border-b border-gray-100">
           <Link to="/" className="block hover:opacity-80 transition-opacity">
             <h1 className={`font-serif text-primary-600 ${sidebarOpen ? 'text-2xl' : 'text-lg text-center'}`}>
-              {sidebarOpen ? 'EverAfter' : 'EA'}
+              {sidebarOpen ? 'Beginnings and Endings' : 'BE'}
             </h1>
           </Link>
           {sidebarOpen && (

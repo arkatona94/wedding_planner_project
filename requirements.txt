@@ -1,4 +1,4 @@
-# EverAfter Wedding Planner - Python Dependencies
+# Beginnings and Endings Wedding Planner - Python Dependencies
 # Install with: pip install -r requirements.txt
 
 # Core

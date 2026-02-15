@@ -117,27 +117,27 @@ export default function Photos() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
           {filteredPhotos.map((photo) => (
             <div
               key={photo.id}
-              className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-100 aspect-square"
+              className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-100 break-inside-avoid shadow-sm hover:shadow-md transition-shadow"
               onClick={() => setSelectedPhoto(photo)}
             >
               <img
                 src={photo.url}
                 alt={photo.caption || 'Wedding photo'}
-                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                className="w-full h-auto object-contain transition-transform group-hover:scale-[1.02]"
               />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
-              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none" />
+              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 <p className="text-white text-sm truncate">{photo.caption || 'No caption'}</p>
                 <p className="text-white/70 text-xs">by {photo.uploadedBy}</p>
               </div>
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={(e) => { e.stopPropagation(); likePhoto(photo.id) }}
-                  className="bg-white/90 rounded-full px-2 py-1 text-sm flex items-center gap-1"
+                  className="bg-white/90 rounded-full px-2 py-1 text-sm flex items-center gap-1 hover:bg-white"
                 >
                   ❤️ {photo.likes}
                 </button>

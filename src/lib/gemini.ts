@@ -9,6 +9,13 @@ interface TryOnResult {
 // Helper to wait for a specified time
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
+// Helper to convert URL to base64 if needed
+async function getImageDataBase64(url: string, type: string): Promise<string> {
+  const data = await getImageData(url, type)
+  if (!data) throw new Error(`Could not load ${type}. Try uploading it directly.`)
+  return `data:${data.mimeType};base64,${data.base64}`
+}
+
 import { compressImage as compressImg } from './imageUtils'
 
 // Helper to compress an image to reduce token usage
@@ -318,12 +325,19 @@ export async function generateWithReplicateVton(
   dressImageUrl: string
 ): Promise<TryOnResult> {
   try {
-    console.log('Using Replicate IDM-VTON (free tier)...')
+    console.log('Using Replicate IDM-VTON...')
+
+    // Replicate IDM-VTON usually requires public URLs.
+    // However, we can try passing data URLs if they are under a certain size.
+    // If they are data URLs, we'll log a warning as they might fail on some Replicate endpoints.
+    if (bridePhotoUrl.startsWith('data:') || dressImageUrl.startsWith('data:')) {
+      console.warn('Replicate: One or more images are data URLs. This model may require public URLs for stable performance.')
+    }
 
     const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${replicateApiToken}`,
+        'Authorization': `Token ${replicateApiToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -342,33 +356,50 @@ export async function generateWithReplicateVton(
 
     if (!createResponse.ok) {
       const error = await createResponse.json()
-      throw new Error(error.detail || 'Failed to create prediction')
+      const errorMessage = error.detail || (typeof error === 'string' ? error : JSON.stringify(error))
+      throw new Error(`Replicate API error: ${errorMessage}`)
     }
 
     const prediction = await createResponse.json()
     console.log('Prediction created:', prediction.id)
 
     let result = prediction
-    while (result.status !== 'succeeded' && result.status !== 'failed') {
+    let attempts = 0
+    const maxAttempts = 60 // 2 minutes
+
+    while (result.status !== 'succeeded' && result.status !== 'failed' && result.status !== 'canceled' && attempts < maxAttempts) {
       await sleep(2000)
+      attempts++
       const statusResponse = await fetch(
         `https://api.replicate.com/v1/predictions/${prediction.id}`,
-        { headers: { 'Authorization': `Bearer ${replicateApiToken}` } }
+        { headers: { 'Authorization': `Token ${replicateApiToken}` } }
       )
+
+      if (!statusResponse.ok) {
+        console.warn(`Replicate status check failed (${statusResponse.status})`)
+        continue
+      }
+
       result = await statusResponse.json()
-      console.log('VTON status:', result.status)
+      console.log('Replicate status:', result.status)
     }
 
     if (result.status === 'failed') {
-      throw new Error(result.error || 'Prediction failed')
+      throw new Error(result.error || 'Prediction failed on Replicate')
+    }
+
+    if (result.status !== 'succeeded') {
+      throw new Error(`Replicate prediction timed out (${result.status})`)
     }
 
     const outputUrl = result.output
     if (!outputUrl) {
-      throw new Error('No output image returned')
+      throw new Error('No output image returned from Replicate')
     }
 
-    return { success: true, imageUrl: outputUrl }
+    // result.output can be an array or a string depending on the model
+    const imageUrl = Array.isArray(outputUrl) ? outputUrl[0] : outputUrl
+    return { success: true, imageUrl }
   } catch (error) {
     console.error('Replicate VTON error:', error)
     return {
@@ -390,13 +421,8 @@ export async function generateWithFashnApi(
   try {
     console.log('Using official FASHN API v1.6...')
 
-    // Get image data for both images
-    const brideImageData = await getImageData(bridePhotoUrl, 'bride photo')
-    const dressImageData = await getImageData(dressImageUrl, 'dress image')
-
-    if (!brideImageData || !dressImageData) {
-      throw new Error('Failed to load images for FASHN')
-    }
+    // We'll let the FASHN API fetch remote URLs if possible, only convert to base64 if it's a data URL or local
+    console.log('Submitting request to FASHN...')
 
     // Submit the try-on request
     const createResponse = await fetch('https://api.fashn.ai/v1/run', {
@@ -407,9 +433,17 @@ export async function generateWithFashnApi(
       },
       body: JSON.stringify({
         model_name: 'tryon-v1.6',
+        outputs: {
+          format: 'jpeg',
+          quality: 90
+        },
         inputs: {
-          model_image: `data:${brideImageData.mimeType};base64,${brideImageData.base64}`,
-          garment_image: `data:${dressImageData.mimeType};base64,${dressImageData.base64}`
+          model_image: bridePhotoUrl.startsWith('data:')
+            ? bridePhotoUrl
+            : await getImageDataBase64(bridePhotoUrl, 'bride photo'),
+          garment_image: dressImageUrl.startsWith('data:')
+            ? dressImageUrl
+            : await getImageDataBase64(dressImageUrl, 'dress image')
         },
         category: 'one-pieces', // Wedding dresses
         mode: 'quality', // Best quality
@@ -420,8 +454,17 @@ export async function generateWithFashnApi(
     })
 
     if (!createResponse.ok) {
-      const error = await createResponse.json()
-      throw new Error(error.error || error.message || 'Failed to create FASHN prediction')
+      const errorText = await createResponse.text()
+      let errorJson
+      try {
+        errorJson = JSON.parse(errorText)
+      } catch (e) {
+        console.error('Failed to parse FASHN error response:', errorText)
+      }
+
+      const errorMessage = errorJson?.error || errorJson?.message || `FASHN API error (${createResponse.status}): ${errorText}`
+      console.error('FASHN API submission failed:', errorMessage)
+      throw new Error(errorMessage)
     }
 
     const prediction = await createResponse.json()
@@ -439,8 +482,14 @@ export async function generateWithFashnApi(
       const statusResponse = await fetch(`https://api.fashn.ai/v1/status/${prediction.id}`, {
         headers: { 'Authorization': `Bearer ${fashnApiKey}` }
       })
+
+      if (!statusResponse.ok) {
+        console.warn(`FASHN status check failed (${statusResponse.status})`)
+        continue // Try again next time
+      }
+
       result = await statusResponse.json()
-      console.log('FASHN status:', result.status)
+      console.log('FASHN status update:', result.status, result.progress ? `(${result.progress}%)` : '')
     }
 
     if (result.status === 'failed') {
@@ -480,15 +529,20 @@ async function getImageData(url: string, imageType: string): Promise<{ base64: s
   try {
     // If it's already a data URL, extract the base64 and mime type
     if (url.startsWith('data:')) {
-      const matches = url.match(/^data:([^;]+);base64,(.+)$/)
-      if (matches) {
-        console.log(`${imageType}: Successfully extracted data URL (${matches[1]})`)
+      const parts = url.split(',')
+      if (parts.length < 2) {
+        console.error(`${imageType}: Malformed data URL`)
+        return null
+      }
+      const mimeMatch = parts[0].match(/data:([^;]+);base64/)
+      if (mimeMatch) {
+        console.log(`${imageType}: Successfully extracted data URL (${mimeMatch[1]})`)
         return {
-          mimeType: matches[1],
-          base64: matches[2]
+          mimeType: mimeMatch[1],
+          base64: parts[1]
         }
       }
-      console.error(`${imageType}: Invalid data URL format`)
+      console.error(`${imageType}: Could not parse MIME type from data URL`)
       return null
     }
 

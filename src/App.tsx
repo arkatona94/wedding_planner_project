@@ -50,7 +50,7 @@ function App() {
     async function fetchProfile(userId: string) {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, app_settings')
+        .select('full_name, app_settings, city, state, zip_code')
         .eq('id', userId)
         .single()
 
@@ -58,156 +58,181 @@ function App() {
         if (data.app_settings) {
           updateAppSettings(data.app_settings)
         }
-        return data.full_name
+        return {
+          name: data.full_name,
+          city: data.city || '',
+          state: data.state || '',
+          zipCode: data.zip_code || ''
+        }
       }
       return null
     }
 
     async function fetchFullWeddingData(userId: string) {
-      // 1. Get the wedding
-      const { data: weddingData, error: weddingError } = await supabase
-        .from('weddings')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
+      try {
+        // 1. Get the wedding
+        const { data: weddingData, error: weddingError } = await supabase
+          .from('weddings')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
 
-      if (weddingError || !weddingData) return
+        if (weddingError) {
+          if (weddingError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+            console.error('Error fetching wedding:', weddingError)
+          }
+          return
+        }
 
-      // Transform DB names to store names
-      setWedding({
-        id: weddingData.id,
-        partner1Name: weddingData.partner1_name || '',
-        partner2Name: weddingData.partner2_name || '',
-        weddingDate: weddingData.wedding_date || '',
-        venue: weddingData.venue_name || '',
-        estimatedGuests: weddingData.estimated_guests || 100,
-        totalBudget: Number(weddingData.total_budget || 30000)
-      })
+        if (!weddingData) return
 
-      const wId = weddingData.id
+        // Transform DB names to store names
+        setWedding({
+          id: weddingData.id,
+          partner1Name: weddingData.partner1_name || '',
+          partner2Name: weddingData.partner2_name || '',
+          weddingDate: weddingData.wedding_date || '',
+          venue: weddingData.venue_name || '',
+          estimatedGuests: weddingData.estimated_guests || 100,
+          totalBudget: Number(weddingData.total_budget || 30000)
+        })
 
-      // 2. Fetch related data
-      const [checklist, budget, guests, vendors, photos, boards, boardImages] = await Promise.all([
-        supabase.from('checklist_items').select('*').eq('wedding_id', wId),
-        supabase.from('budget_items').select('*').eq('wedding_id', wId),
-        supabase.from('guests').select('*').eq('wedding_id', wId),
-        supabase.from('vendors').select('*').eq('wedding_id', wId),
-        supabase.from('photos').select('*').eq('wedding_id', wId),
-        supabase.from('inspiration_boards').select('*').eq('wedding_id', wId),
-        supabase.from('inspiration_images').select('*'), // Join via JS for simplicity or use specific query
-      ])
+        const wId = weddingData.id
 
-      if (!checklist.error && checklist.data) {
-        setChecklist(checklist.data.map(item => ({
-          id: item.id,
-          title: item.title,
-          description: item.description || '',
-          category: item.category || 'other',
-          dueDate: item.due_date || '',
-          completed: item.completed,
-          priority: item.priority as any,
-          notes: ''
-        })))
-      }
+        // 2. Fetch related data
+        const [checklist, budget, guests, vendors, photos, boards, boardImages] = await Promise.all([
+          supabase.from('checklist_items').select('*').eq('wedding_id', wId),
+          supabase.from('budget_items').select('*').eq('wedding_id', wId),
+          supabase.from('guests').select('*').eq('wedding_id', wId),
+          supabase.from('vendors').select('*').eq('wedding_id', wId),
+          supabase.from('photos').select('*').eq('wedding_id', wId),
+          supabase.from('inspiration_boards').select('*').eq('wedding_id', wId),
+          supabase.from('inspiration_images').select('*'), // Join via JS or use specific query
+        ])
 
-      if (!budget.error && budget.data) {
-        setBudgetItems(budget.data.map(item => ({
-          id: item.id,
-          category: item.category || 'Other',
-          vendor: item.name,
-          estimatedCost: Number(item.estimated_cost),
-          actualCost: Number(item.actual_cost),
-          paid: Number(item.paid_amount),
-          dueDate: item.due_date || '',
-          notes: item.notes || '',
-          vendorId: item.vendor_id || undefined
-        })))
-      }
+        // Handle Checklist
+        if (!checklist.error && checklist.data) {
+          setChecklist(checklist.data.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description || '',
+            category: item.category || 'other',
+            dueDate: item.due_date || '',
+            completed: item.completed,
+            priority: item.priority as any,
+            notes: ''
+          })))
+        }
 
-      if (!guests.error && guests.data) {
-        setGuests(guests.data.map(item => ({
-          id: item.id,
-          firstName: item.first_name,
-          lastName: item.last_name,
-          email: item.email || '',
-          phone: item.phone || '',
-          rsvpStatus: item.rsvp_status as any,
-          mealChoice: item.meal_choice || '',
-          dietaryRestrictions: item.dietary_restrictions || [],
-          plusOne: item.plus_one,
-          plusOneName: item.plus_one_name || '',
-          tableAssignment: item.table_assignment,
-          group: item.group || '',
-          isBrideSide: item.is_bride_side,
-          isGroomSide: item.is_groom_side,
-          address: item.address as any,
-          notes: item.notes || '',
-          inviteCode: (item as any).invite_code || '',
-          userId: (item as any).user_id || undefined,
-          partyMembers: (item as any).party_members || []
-        })))
-      }
+        // Handle Budget
+        if (!budget.error && budget.data) {
+          setBudgetItems(budget.data.map(item => ({
+            id: item.id,
+            category: item.category || 'Other',
+            vendor: item.name,
+            estimatedCost: Number(item.estimated_cost),
+            actualCost: Number(item.actual_cost),
+            paid: Number(item.paid_amount),
+            dueDate: item.due_date || '',
+            notes: item.notes || '',
+            vendorId: item.vendor_id || undefined
+          })))
+        }
 
-      if (!vendors.error && vendors.data) {
-        setVendors(vendors.data.map(item => ({
-          id: item.id,
-          name: item.name,
-          category: item.category || 'other',
-          contactName: item.contact_person || '',
-          email: item.email || '',
-          phone: item.phone || '',
-          website: '',
-          price: Number(item.price),
-          depositPaid: item.deposit_paid,
-          contracted: item.contracted,
-          rating: item.rating,
-          notes: item.notes || ''
-        })))
-      }
+        // Handle Guests
+        if (!guests.error && guests.data) {
+          setGuests(guests.data.map(item => ({
+            id: item.id,
+            firstName: item.first_name,
+            lastName: item.last_name,
+            email: item.email || '',
+            phone: item.phone || '',
+            rsvpStatus: item.rsvp_status as any,
+            mealChoice: item.meal_choice || '',
+            dietaryRestrictions: item.dietary_restrictions || [],
+            plusOne: item.plus_one,
+            plusOneName: item.plus_one_name || '',
+            tableAssignment: item.table_assignment,
+            group: item.group || '',
+            isBrideSide: item.is_bride_side,
+            isGroomSide: item.is_groom_side,
+            address: item.address as any,
+            notes: item.notes || '',
+            inviteCode: (item as any).invite_code || '',
+            userId: (item as any).user_id || undefined,
+            partyMembers: (item as any).party_members || []
+          })))
+        }
 
-      if (!photos.error && photos.data) {
-        setPhotos(photos.data.map(item => ({
-          id: item.id,
-          url: item.url,
-          uploadedBy: item.uploaded_by || 'Guest',
-          uploadedAt: item.created_at,
-          caption: item.caption || '',
-          likes: item.likes || 0,
-          tags: item.category ? [item.category] : []
-        })))
-      }
+        // Handle Vendors
+        if (!vendors.error && vendors.data) {
+          setVendors(vendors.data.map(item => ({
+            id: item.id,
+            name: item.name,
+            category: item.category || 'other',
+            contactName: item.contact_person || '',
+            email: item.email || '',
+            phone: item.phone || '',
+            website: '',
+            price: Number(item.price),
+            depositPaid: item.deposit_paid,
+            contracted: item.contracted,
+            rating: item.rating,
+            notes: item.notes || ''
+          })))
+        }
 
-      if (!boards.error && boards.data) {
-        setInspirationBoards(boards.data.map(board => ({
-          id: board.id,
-          name: board.name,
-          category: (board.category || 'other') as any,
-          description: board.description || '',
-          coverImage: board.cover_image,
-          createdAt: board.created_at,
-          updatedAt: board.updated_at,
-          images: boardImages.data
-            ?.filter(img => img.board_id === board.id)
-            .map(img => ({
-              id: img.id,
-              url: img.url,
-              source: img.source,
-              notes: img.notes,
-              tags: img.tags || [],
-              addedAt: img.added_at
-            })) || []
-        })))
+        // Handle Photos
+        if (!photos.error && photos.data) {
+          setPhotos(photos.data.map(item => ({
+            id: item.id,
+            url: item.url,
+            uploadedBy: item.uploaded_by || 'Guest',
+            uploadedAt: item.created_at,
+            caption: item.caption || '',
+            likes: item.likes || 0,
+            tags: item.category ? [item.category] : []
+          })))
+        }
+
+        // Handle Boards
+        if (!boards.error && boards.data) {
+          setInspirationBoards(boards.data.map(board => ({
+            id: board.id,
+            name: board.name,
+            category: (board.category || 'other') as any,
+            description: board.description || '',
+            coverImage: board.cover_image,
+            createdAt: board.created_at,
+            updatedAt: board.updated_at,
+            images: boardImages.data
+              ?.filter(img => img.board_id === board.id)
+              .map(img => ({
+                id: img.id,
+                url: img.url,
+                source: img.source,
+                notes: img.notes,
+                tags: img.tags || [],
+                addedAt: img.added_at
+              })) || []
+          })))
+        }
+      } catch (err) {
+        console.error('Critical error in fetchFullWeddingData:', err)
       }
     }
 
     // Check active sessions and sets the user
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const fullName = await fetchProfile(session.user.id)
+        const profile = await fetchProfile(session.user.id)
         setUser({
           id: session.user.id,
           email: session.user.email!,
-          name: fullName || session.user.user_metadata?.full_name || ''
+          name: profile?.name || session.user.user_metadata?.full_name || '',
+          city: profile?.city || '',
+          state: profile?.state || '',
+          zipCode: profile?.zipCode || ''
         })
         fetchFullWeddingData(session.user.id)
       }
@@ -216,11 +241,14 @@ function App() {
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        const fullName = await fetchProfile(session.user.id)
+        const profile = await fetchProfile(session.user.id)
         setUser({
           id: session.user.id,
           email: session.user.email!,
-          name: fullName || session.user.user_metadata?.full_name || ''
+          name: profile?.name || session.user.user_metadata?.full_name || '',
+          city: profile?.city || '',
+          state: profile?.state || '',
+          zipCode: profile?.zipCode || ''
         })
         fetchFullWeddingData(session.user.id)
       } else {

@@ -165,7 +165,7 @@ export default function Share() {
 
       {/* Footer */}
       <div className="text-center py-8 text-gray-400 text-sm">
-        <p>Powered by EverAfter Wedding Planner</p>
+        <p>Powered by Beginnings and Endings Wedding Planner</p>
       </div>
     </div>
   )

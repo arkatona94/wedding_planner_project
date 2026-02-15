@@ -1,0 +1,10 @@
+[dotenv@17.2.3] injecting env (13) from .env -- tip: ΓÜÖ∩╕Å  specify custom .env file path with { path: '/custom/path/.env' }
+Checking table: profiles... OK
+Checking table: weddings... OK
+Checking table: checklist_items... OK
+Checking table: budget_items... OK
+Checking table: guests... OK
+Checking table: vendors... OK
+Checking table: photos... OK
+Checking table: inspiration_boards... OK
+Checking table: inspiration_images... OK

@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Sparkles } from 'lucide-react'
 import { useWeddingStore } from '../store/weddingStore'
-import { generateDressTryOn, generateWithFashnApi } from '../lib/gemini'
+import { generateDressTryOn, generateWithFashnApi, generateWithReplicateVton } from '../lib/gemini'
 import { compressImage, fileToCompressedDataUrl } from '../lib/imageUtils'
 import type { BoardCategory, InspirationBoard, InspirationImage } from '../types'
 
@@ -179,9 +180,9 @@ export default function Inspiration() {
 
   // Try-on state
   const [tryOnImage, setTryOnImage] = useState<InspirationImage | null>(null)
-  const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false)
   const [tryOnResult, setTryOnResult] = useState<string | null>(null)
   const [tryOnError, setTryOnError] = useState<string | null>(null)
+  const [tryOnStatus, setTryOnStatus] = useState<string | null>(null)
 
   const inspirationBoards = useWeddingStore((state) => state.inspirationBoards)
   const addInspirationBoard = useWeddingStore((state) => state.addInspirationBoard)
@@ -508,19 +509,28 @@ export default function Inspiration() {
     setTryOnImage(image)
     setTryOnResult(null)
     setTryOnError(null)
-    setIsGeneratingTryOn(true)
+    setTryOnStatus('Initializing...')
 
     try {
       let result;
 
-      // Priority: FASHN API > Local VTON > Gemini
+      // Priority: FASHN API > Replicate > Local VTON > Gemini
       if (appSettings.fashnApiKey) {
+        setTryOnStatus('Connecting to FASHN AI...')
         result = await generateWithFashnApi(
           appSettings.fashnApiKey,
           appSettings.bridePhoto,
           image.url
         )
+      } else if (appSettings.replicateApiToken) {
+        setTryOnStatus('Connecting to Replicate AI...')
+        result = await generateWithReplicateVton(
+          appSettings.replicateApiToken,
+          appSettings.bridePhoto,
+          image.url
+        )
       } else {
+        setTryOnStatus('Analyzing with Gemini AI...')
         result = await generateDressTryOn(
           appSettings.geminiApiKey || '',
           appSettings.bridePhoto,
@@ -530,26 +540,28 @@ export default function Inspiration() {
       }
 
       if (result.success && result.imageUrl) {
+        setTryOnStatus('Finalizing...')
         setTryOnResult(result.imageUrl)
         // Save the result to the image
         if (selectedBoard) {
           await updateBoardImage(selectedBoard.id, image.id, { tryOnUrl: result.imageUrl })
         }
       } else {
-        setTryOnError(result.error || 'Failed to generate try-on image')
+        setTryOnError(result.error || 'The AI service returned an unknown error. Please try again.')
       }
     } catch (err) {
-      setTryOnError(err instanceof Error ? err.message : 'An error occurred')
+      console.error('Try-on error:', err)
+      setTryOnError(err instanceof Error ? err.message : 'An unexpected error occurred during the try-on process.')
     } finally {
-      setIsGeneratingTryOn(false)
+      setTryOnStatus(null)
     }
-  }, [appSettings.bridePhoto, appSettings.geminiApiKey, appSettings.vtonApiUrl, appSettings.fashnApiKey, navigate, selectedBoard, updateBoardImage])
+  }, [appSettings.bridePhoto, appSettings.fashnApiKey, appSettings.geminiApiKey, appSettings.vtonApiUrl, navigate, selectedBoard, updateBoardImage])
 
   const closeTryOnModal = () => {
     setTryOnImage(null)
     setTryOnResult(null)
     setTryOnError(null)
-    setIsGeneratingTryOn(false)
+    setTryOnStatus(null)
   }
 
   const totalImages = inspirationBoards.reduce((sum, b) => sum + b.images.length, 0)
@@ -837,108 +849,96 @@ export default function Inspiration() {
               </svg>
             </button>
 
-            <div className="max-w-6xl w-full max-h-[90vh] overflow-auto">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-serif text-white mb-2">AI Dress Try-On</h2>
-                <p className="text-white/60">See yourself in this dress</p>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-primary-600" />
+                  </div>
+                  <h2 className="text-xl font-serif text-gray-800 dark:text-gray-100">Virtual Try-On</h2>
+                </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Original Dress */}
-                <div className="bg-white/10 rounded-xl p-4">
-                  <h3 className="text-white text-sm font-medium mb-3 text-center">Original Dress</h3>
-                  <img
-                    src={tryOnImage.url}
-                    alt="Original dress"
-                    className="w-full max-h-[60vh] object-contain rounded-lg"
-                  />
-                </div>
-
-                {/* Try-On Result */}
-                <div className="bg-white/10 rounded-xl p-4">
-                  <h3 className="text-white text-sm font-medium mb-3 text-center">Your Try-On</h3>
-
-                  {isGeneratingTryOn && (
-                    <div className="flex flex-col items-center justify-center h-[60vh] text-white">
-                      <div className="relative mb-6">
-                        <svg className="animate-spin h-16 w-16 text-primary-400" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                        </svg>
-                      </div>
-                      <p className="text-lg font-medium">Creating your look...</p>
-                      <p className="text-white/60 text-sm mt-2">This may take a moment</p>
+              <div className="relative">
+                {tryOnError ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-2xl">⚠️</span>
                     </div>
-                  )}
-
-                  {tryOnError && (
-                    <div className="flex flex-col items-center justify-center h-[60vh] text-white">
-                      <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
-                        <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <p className="text-lg font-medium text-red-400">Generation Failed</p>
-                      <p className="text-white/60 text-sm mt-2 max-w-xs text-center">{tryOnError}</p>
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
+                      Try-On Failed
+                    </h3>
+                    <p className="text-red-600 text-sm mb-6 max-w-xs mx-auto">
+                      {tryOnError}
+                    </p>
+                    <div className="space-y-3">
                       <button
-                        onClick={() => handleTryOn(tryOnImage)}
-                        className="mt-4 btn-primary"
+                        onClick={() => handleTryOn(tryOnImage!)}
+                        className="btn-primary w-full"
                       >
                         Try Again
                       </button>
+                      <p className="text-xs text-gray-400">
+                        Tip: If you're using a dress from another website, try saving it and uploading it directly.
+                      </p>
                     </div>
-                  )}
-
-                  {tryOnResult && !isGeneratingTryOn && (
-                    <img
-                      src={tryOnResult}
-                      alt="Your try-on"
-                      className="w-full max-h-[60vh] object-contain rounded-lg"
-                    />
-                  )}
-
-                  {!isGeneratingTryOn && !tryOnResult && !tryOnError && (
-                    <div className="flex flex-col items-center justify-center h-[60vh] text-white">
+                  </div>
+                ) : tryOnResult ? (
+                  <div className="space-y-6">
+                    <div className="aspect-[3/4] rounded-xl overflow-hidden bg-gray-100 shadow-inner">
+                      <img
+                        src={tryOnResult}
+                        alt="Try-on result"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="flex gap-3">
                       <button
-                        onClick={() => handleTryOn(tryOnImage)}
-                        className="btn-primary text-lg px-8 py-3"
+                        onClick={() => {
+                          const a = document.createElement('a')
+                          a.href = tryOnResult
+                          a.download = `wedding-tryon-${tryOnImage?.id}.jpg`
+                          a.click()
+                        }}
+                        className="btn-primary flex-1 flex items-center justify-center gap-2"
                       >
-                        Generate Try-On
+                        <span>Download Photo</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTryOnResult(null)
+                          handleTryOn(tryOnImage!)
+                        }}
+                        className="btn-secondary"
+                      >
+                        Retry
                       </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="relative w-32 h-40 mx-auto mb-6">
+                      <img
+                        src={tryOnImage?.url}
+                        alt="Original dress"
+                        className="w-full h-full object-contain rounded-lg opacity-40 blur-[2px]"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-serif text-gray-800 dark:text-gray-200 mb-2">
+                      Designing Your Look
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-1 animate-pulse">
+                      {tryOnStatus || 'Merging your photo with the dress...'}
+                    </p>
+                    <p className="text-xs text-gray-400 italic">
+                      This usually takes 15-30 seconds
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {tryOnResult && !isGeneratingTryOn && (
-                <div className="mt-6 text-center">
-                  <p className="text-white/60 text-sm mb-3">
-                    This is an AI-generated visualization. Results are artistic interpretations.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setTryOnResult(null)
-                      setTryOnError(null)
-                      handleTryOn(tryOnImage)
-                    }}
-                    className="btn-secondary mr-3"
-                  >
-                    Regenerate
-                  </button>
-                  <a
-                    href={tryOnResult}
-                    download="dress-try-on.png"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary"
-                  >
-                    Download Image
-                  </a>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -1143,7 +1143,7 @@ export default function Inspiration() {
                     <img
                       src={board.coverImage}
                       alt={board.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      className="w-full h-full object-contain bg-gray-50 dark:bg-gray-700/50 group-hover:scale-[1.02] transition-transform"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -1187,7 +1187,7 @@ export default function Inspiration() {
                         <img
                           src={img.url}
                           alt=""
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain bg-gray-50 dark:bg-gray-700/50"
                         />
                       </div>
                     ))}

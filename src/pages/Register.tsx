@@ -65,56 +65,9 @@ export default function Register() {
             if (signUpError) throw signUpError
 
             if (data.user) {
-                // 1. Set local store user
-                setUser({
-                    id: data.user.id,
-                    email: data.user.email!,
-                    name: `${brideName} & ${groomName}`,
-                    city: city,
-                    state: state
-                })
-                updateAppSettings({ enabledModules: selectedModules })
-
-                // 2. Create initial wedding record in Supabase
-                // We use a try-catch for the profile/wedding creation in case 
-                // triggers are already handling it or there are RLS issues.
-                try {
-                    // Check if profile exists (might be created by trigger)
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('id')
-                        .eq('id', data.user.id)
-                        .single()
-
-                    if (!profile) {
-                        await supabase.from('profiles').insert({
-                            id: data.user.id,
-                            email: data.user.email,
-                            full_name: `${brideName} & ${groomName}`,
-                            app_settings: { enabledModules: selectedModules, darkMode: false }
-                        })
-                    }
-
-                    // Create the wedding record
-                    const { error: weddingError } = await supabase
-                        .from('weddings')
-                        .insert({
-                            user_id: data.user.id,
-                            partner1_name: brideName || 'Partner 1',
-                            partner2_name: groomName || 'Partner 2',
-                            total_budget: 30000,
-                            estimated_guests: 100
-                        })
-                        .select()
-                        .single()
-
-                    if (weddingError) {
-                        console.error('Error creating wedding record:', weddingError)
-                    }
-                } catch (dbErr) {
-                    console.error('Database initialization error during signup:', dbErr)
-                }
-
+                // The database trigger 'on_auth_user_created' should automatically create
+                // the user's profile and initial wedding data. We can rely on that
+                // and simply navigate to the dashboard.
                 navigate('/')
             }
         } catch (err: any) {
@@ -331,10 +284,13 @@ export default function Register() {
                                         updateAppSettings({ enabledModules: selectedModules })
                                         navigate('/')
                                     }}
-                                    className="w-full py-2 px-4 border-2 border-dashed border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-2 px-4 border-2 border-dashed border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition-all flex flex-col items-center justify-center gap-1"
                                 >
-                                    <span className="text-lg">🛠️</span>
-                                    DEV: Skip & Test Modules
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-lg">🛠️</span>
+                                        DEV: Skip & Test Modules
+                                    </div>
+                                    <span className="text-[9px] uppercase tracking-tighter opacity-70">(Local storage only - Will not save to cloud)</span>
                                 </button>
                                 <p className="text-[10px] text-gray-400 text-center mt-2 italic">
                                     * Bypasses Supabase but applies your module selection.

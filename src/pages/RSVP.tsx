@@ -411,7 +411,7 @@ export default function RSVP() {
                     <p className="text-xs font-serif italic mb-4">"Love is old, love is new, love is all, love is you."</p>
                     <div className="flex items-center justify-center gap-2">
                         <div className="h-px grow bg-primary-100" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Powered by EverAfter</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Powered by Beginnings and Endings</span>
                         <div className="h-px grow bg-primary-100" />
                     </div>
                 </div>

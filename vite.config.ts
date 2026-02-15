@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon-192.svg', 'icon-512.svg', 'apple-touch-icon.svg'],
       manifest: {
-        name: 'EverAfter Wedding Planner',
-        short_name: 'EverAfter',
+        name: 'Beginnings and Endings Wedding Planner',
+        short_name: 'Beginnings',
         description: 'Your wedding command center - Plan your perfect day with ease',
         theme_color: '#c97f66',
         background_color: '#fdf8f6',

@@ -1,7 +1,7 @@
 # Wedding Planner Application Directive
 
 ## Overview
-EverAfter is a comprehensive wedding planning application that serves as a "Command Center" for couples planning their wedding. It synthesizes the best features from top wedding planning apps (The Knot, Zola, Joy, Bridebook, Prismm) while solving common pain points.
+Beginnings and Endings is a comprehensive wedding planning application that serves as a "Command Center" for couples planning their wedding. It synthesizes the best features from top wedding planning apps (The Knot, Zola, Joy, Bridebook, Prismm) while solving common pain points.
 
 ## Architecture
 This application follows the 3-layer architecture:
@@ -38,9 +38,27 @@ This application follows the 3-layer architecture:
 - **Wedding Website**: Customizable website with templates and themes
 
 ### 4. Vendor Management
-- Track vendor contacts, contracts, pricing, ratings
-- Category-based organization
-- Contract and deposit tracking
+- **Overview**: Card-based grid layout grouped by category for easy visualization.
+- **Vendor Categories (Drop-down Options)**:
+  - Venue
+  - Catering
+  - Photography
+  - Videography
+  - Flowers (Florist)
+  - Music/DJ
+  - Officiant
+  - Cake
+  - Decor/Rentals
+  - Transportation
+  - Hair & Makeup
+  - Attire
+  - Other
+- **Key Features & Capabilities**:
+  - **CRUD Operations**: Complete ability to Add, Edit, and Delete vendors with inline editing for quick updates.
+  - **Financial Integration**: Fields for Estimated Cost, Actual Cost, Deposit Paid, and Balance Due (syncs with Budget Tracker).
+  - **Status Tracking**: Drop-down to track status: *Researching, Contacted, Hired, Declined*.
+  - **Contract Management**: Upload and link PDF contracts to specific vendors.
+  - **Rating System**: 5-star rating system for evaluating potential vendors.
 
 ## Tech Stack
 - **Frontend**: React 18 + TypeScript

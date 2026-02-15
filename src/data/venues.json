@@ -74,6 +74,28 @@
         ],
         "source": "Local Directory",
         "distance_miles": 10.0
+      },
+      {
+        "name": "Clementine Hall",
+        "address": "4710 Charlotte Ave",
+        "city": "Nashville",
+        "state": "TN",
+        "zip_code": "37209",
+        "capacity": 175,
+        "capacity_category": "medium",
+        "phone": "(615) 555-0102",
+        "website": "https://clementinehall.com",
+        "price_range": "$$$",
+        "venue_type": "Historic Hall",
+        "rating": 4.2,
+        "reviews_count": 24,
+        "amenities": [
+          "Historic Beauty",
+          "Modern Touches",
+          "Professional Staff"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 5.0
       }
     ],
     "large": [
@@ -164,6 +186,28 @@
         ],
         "source": "Local Directory",
         "distance_miles": 18.5
+      },
+      {
+        "name": "14TENN",
+        "address": "1410 51st Ave N",
+        "city": "Nashville",
+        "state": "TN",
+        "zip_code": "37209",
+        "capacity": 275,
+        "capacity_category": "large",
+        "phone": "(615) 555-0103",
+        "website": "https://14tenn.com",
+        "price_range": "$$",
+        "venue_type": "Modern Farmhouse",
+        "rating": 4.8,
+        "reviews_count": 38,
+        "amenities": [
+          "Modern Farmhouse",
+          "Versatile",
+          "Great Communication"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 4.5
       }
     ],
     "grand": [
@@ -276,6 +320,94 @@
         ],
         "source": "Local Directory",
         "distance_miles": 12.0
+      },
+      {
+        "name": "Cheekwood Estate & Gardens",
+        "address": "1200 Forrest Park Dr",
+        "city": "Nashville",
+        "state": "TN",
+        "zip_code": "37205",
+        "capacity": 400,
+        "capacity_category": "grand",
+        "phone": "(615) 356-8000",
+        "website": "https://cheekwood.org",
+        "price_range": "$$$$",
+        "venue_type": "Garden/Estate",
+        "rating": 4.1,
+        "reviews_count": 42,
+        "amenities": [
+          "Botanical Gardens",
+          "Historic Mansion",
+          "Stunning Views"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 8.5
+      },
+      {
+        "name": "The Bridge Building",
+        "address": "2 Victory Ave",
+        "city": "Nashville",
+        "state": "TN",
+        "zip_code": "37213",
+        "capacity": 350,
+        "capacity_category": "grand",
+        "phone": "(615) 369-6474",
+        "website": "https://thebridgebuilding.com",
+        "price_range": "$$$",
+        "venue_type": "Modern/Riverfront",
+        "rating": 5.0,
+        "reviews_count": 150,
+        "amenities": [
+          "Riverfront Views",
+          "Modern Design",
+          "Rooftop"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 1.2
+      },
+      {
+        "name": "Riverwood Mansion",
+        "address": "1833 Welcome Lane",
+        "city": "Nashville",
+        "state": "TN",
+        "zip_code": "37216",
+        "capacity": 300,
+        "capacity_category": "grand",
+        "phone": "(615) 228-8892",
+        "website": "https://riverwoodmansion.com",
+        "price_range": "$$$",
+        "venue_type": "Mansion/Estate",
+        "rating": 4.9,
+        "reviews_count": 61,
+        "amenities": [
+          "Historic Mansion",
+          "All-Inclusive",
+          "East Nashville charm"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 6.0
+      },
+      {
+        "name": "The Loveless Barn",
+        "address": "8400 Highway 100",
+        "city": "Nashville",
+        "state": "TN",
+        "zip_code": "37221",
+        "capacity": 350,
+        "capacity_category": "grand",
+        "phone": "(615) 646-9700",
+        "website": "https://lovelesscafe.com",
+        "price_range": "$$",
+        "venue_type": "Barn/Event Space",
+        "rating": 4.9,
+        "reviews_count": 80,
+        "amenities": [
+          "Southern Charm",
+          "Amazing Food",
+          "Rustic"
+        ],
+        "source": "Local Directory",
+        "distance_miles": 15.0
       }
     ]
   },
@@ -543,6 +675,138 @@
       ],
       "source": "Local Directory",
       "distance_miles": 21.0
+    },
+    {
+      "name": "Cheekwood Estate & Gardens",
+      "address": "1200 Forrest Park Dr",
+      "city": "Nashville",
+      "state": "TN",
+      "zip_code": "37205",
+      "capacity": 400,
+      "capacity_category": "grand",
+      "phone": "(615) 356-8000",
+      "website": "https://cheekwood.org",
+      "price_range": "$$$$",
+      "venue_type": "Garden/Estate",
+      "rating": 4.1,
+      "reviews_count": 42,
+      "amenities": [
+        "Botanical Gardens",
+        "Historic Mansion",
+        "Stunning Views"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 8.5
+    },
+    {
+      "name": "The Bridge Building",
+      "address": "2 Victory Ave",
+      "city": "Nashville",
+      "state": "TN",
+      "zip_code": "37213",
+      "capacity": 350,
+      "capacity_category": "grand",
+      "phone": "(615) 369-6474",
+      "website": "https://thebridgebuilding.com",
+      "price_range": "$$$",
+      "venue_type": "Modern/Riverfront",
+      "rating": 5.0,
+      "reviews_count": 150,
+      "amenities": [
+        "Riverfront Views",
+        "Modern Design",
+        "Rooftop"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 1.2
+    },
+    {
+      "name": "14TENN",
+      "address": "1410 51st Ave N",
+      "city": "Nashville",
+      "state": "TN",
+      "zip_code": "37209",
+      "capacity": 275,
+      "capacity_category": "large",
+      "phone": "(615) 555-0103",
+      "website": "https://14tenn.com",
+      "price_range": "$$",
+      "venue_type": "Modern Farmhouse",
+      "rating": 4.8,
+      "reviews_count": 38,
+      "amenities": [
+        "Modern Farmhouse",
+        "Versatile",
+        "Great Communication"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 4.5
+    },
+    {
+      "name": "Clementine Hall",
+      "address": "4710 Charlotte Ave",
+      "city": "Nashville",
+      "state": "TN",
+      "zip_code": "37209",
+      "capacity": 175,
+      "capacity_category": "medium",
+      "phone": "(615) 555-0102",
+      "website": "https://clementinehall.com",
+      "price_range": "$$$",
+      "venue_type": "Historic Hall",
+      "rating": 4.2,
+      "reviews_count": 24,
+      "amenities": [
+        "Historic Beauty",
+        "Modern Touches",
+        "Professional Staff"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 5.0
+    },
+    {
+      "name": "Riverwood Mansion",
+      "address": "1833 Welcome Lane",
+      "city": "Nashville",
+      "state": "TN",
+      "zip_code": "37216",
+      "capacity": 300,
+      "capacity_category": "grand",
+      "phone": "(615) 228-8892",
+      "website": "https://riverwoodmansion.com",
+      "price_range": "$$$",
+      "venue_type": "Mansion/Estate",
+      "rating": 4.9,
+      "reviews_count": 61,
+      "amenities": [
+        "Historic Mansion",
+        "All-Inclusive",
+        "East Nashville charm"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 6.0
+    },
+    {
+      "name": "The Loveless Barn",
+      "address": "8400 Highway 100",
+      "city": "Nashville",
+      "state": "TN",
+      "zip_code": "37221",
+      "capacity": 350,
+      "capacity_category": "grand",
+      "phone": "(615) 646-9700",
+      "website": "https://lovelesscafe.com",
+      "price_range": "$$",
+      "venue_type": "Barn/Event Space",
+      "rating": 4.9,
+      "reviews_count": 80,
+      "amenities": [
+        "Southern Charm",
+        "Amazing Food",
+        "Rustic"
+      ],
+      "source": "Local Directory",
+      "distance_miles": 15.0
     }
   ]
 }

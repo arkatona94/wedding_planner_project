@@ -37,24 +37,24 @@ EXPECTED_TABLES = [
 
 def test_db_connection():
     """Test connection to Supabase"""
-    print("🔌 Testing Supabase connection...")
+    print("Testing Supabase connection...")
 
     if not SUPABASE_URL or not SUPABASE_KEY:
-        print("❌ FAIL: Missing Supabase credentials in .env")
+        print("FAIL: Missing Supabase credentials in .env")
         return False
 
     try:
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print(f"✅ PASS: Connected to {SUPABASE_URL}")
+        print(f"PASS: Connected to {SUPABASE_URL}")
         return supabase
     except Exception as e:
-        print(f"❌ FAIL: Connection error - {e}")
+        print(f"FAIL: Connection error - {e}")
         return False
 
 
 def test_tables_exist(supabase: Client):
     """Verify all expected tables exist"""
-    print("\n📊 Verifying database tables...")
+    print("\nVerifying database tables...")
 
     results = {}
     missing_tables = []
@@ -63,10 +63,10 @@ def test_tables_exist(supabase: Client):
         try:
             # Try to query the table - if it doesn't exist, this will error
             result = supabase.table(table_name).select("*").limit(1).execute()
-            print(f"✅ PASS: Table '{table_name}' exists")
+            print(f"PASS: Table '{table_name}' exists")
             results[table_name] = True
         except Exception as e:
-            print(f"❌ FAIL: Table '{table_name}' missing or inaccessible - {e}")
+            print(f"FAIL: Table '{table_name}' missing or inaccessible - {e}")
             results[table_name] = False
             missing_tables.append(table_name)
 
@@ -117,7 +117,7 @@ def test_table_structure(supabase: Client, table_name: str):
             actual_columns = list(result.data[0].keys())
         else:
             # Empty table, can't verify columns
-            print(f"⚠️  WARN: Table '{table_name}' is empty, skipping column check")
+            print(f"WARN: Table '{table_name}' is empty, skipping column check")
             return True
 
         expected = set(expected_columns[table_name])
@@ -126,14 +126,14 @@ def test_table_structure(supabase: Client, table_name: str):
         missing = expected - actual
 
         if missing:
-            print(f"❌ FAIL: Table '{table_name}' missing columns: {missing}")
+            print(f"FAIL: Table '{table_name}' missing columns: {missing}")
             return False
         else:
-            print(f"✅ PASS: Table '{table_name}' has expected columns")
+            print(f"PASS: Table '{table_name}' has expected columns")
             return True
 
     except Exception as e:
-        print(f"⚠️  WARN: Could not verify columns for '{table_name}' - {e}")
+        print(f"WARN: Could not verify columns for '{table_name}' - {e}")
         return True  # Don't fail if table is empty
 
 
@@ -146,14 +146,14 @@ def main():
     # Test 1: Connection
     supabase = test_db_connection()
     if not supabase:
-        print("\n❌ OVERALL RESULT: FAIL - Cannot connect to database")
+        print("\nOVERALL RESULT: FAIL - Cannot connect to database")
         sys.exit(1)
 
     # Test 2: Tables exist
     results, missing_tables = test_tables_exist(supabase)
 
     # Test 3: Table structure (for key tables only)
-    print("\n🔍 Verifying table structures (sample)...")
+    print("\nVerifying table structures (sample)...")
     structure_checks = []
     for table in ["profiles", "weddings", "guests", "vendors"]:
         if results.get(table):
@@ -169,8 +169,8 @@ def main():
     print(f"Tables missing: {len(missing_tables)}")
 
     if missing_tables:
-        print(f"\n⚠️  Missing tables: {', '.join(missing_tables)}")
-        print("\n📝 Action Required:")
+        print(f"\nMissing tables: {', '.join(missing_tables)}")
+        print("\nAction Required:")
         print("   Run the migration SQL files in Supabase SQL Editor:")
         print("   1. supabase/migrations/20260201090000_initial_schema.sql")
         print("   2. supabase/migrations/20260201100000_public_rsvp.sql")
@@ -178,10 +178,10 @@ def main():
         print("   4. supabase/migrations/20260201110000_storage_and_inspiration.sql")
 
     if all(results.values()) and all(structure_checks):
-        print("\n✅ OVERALL RESULT: PASS - All tables exist and verified")
+        print("\nOVERALL RESULT: PASS - All tables exist and verified")
         sys.exit(0)
     else:
-        print("\n❌ OVERALL RESULT: FAIL - Some tables missing or misconfigured")
+        print("\nOVERALL RESULT: FAIL - Some tables missing or misconfigured")
         sys.exit(1)
 
 

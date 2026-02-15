@@ -282,7 +282,7 @@ export default function GuestRegister() {
 
                 {/* Footer */}
                 <div className="text-center mt-8 text-gray-400 text-sm">
-                    <p>Powered by EverAfter</p>
+                    <p>Powered by Beginnings and Endings</p>
                 </div>
             </div>
         </div>

@@ -1,4 +1,4 @@
-# EverAfter - Wedding Planner Application
+# Beginnings and Endings - Wedding Planner Application
 
 A comprehensive wedding planning "Command Center" that combines the best features from top wedding apps (The Knot, Zola, Joy, Bridebook, Prismm) into a single, privacy-first application.
 

@@ -120,6 +120,11 @@ export default function GuestPortal() {
         setPartyMembers(partyMembers.filter(pm => pm.id !== id))
     }
 
+    const handleSignOut = async () => {
+        await supabase.auth.signOut()
+        navigate('/login')
+    }
+
     const handleSave = async () => {
         setSaving(true)
         setError(null)
@@ -178,7 +183,13 @@ export default function GuestPortal() {
         <div className="min-h-screen bg-wedding-ivory py-8 px-4">
             <div className="max-w-2xl mx-auto">
                 {/* Header */}
-                <div className="text-center mb-8">
+                <div className="text-center mb-8 relative">
+                    <button
+                        onClick={handleSignOut}
+                        className="absolute right-0 top-0 text-[10px] uppercase tracking-widest font-bold text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                        Sign Out
+                    </button>
                     <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-sm mb-4">
                         <Heart className="w-5 h-5 text-primary-500" />
                         <span className="font-serif text-primary-700">Guest Portal</span>
@@ -456,7 +467,7 @@ export default function GuestPortal() {
 
                 {/* Footer */}
                 <div className="text-center mt-8 text-gray-400 text-sm">
-                    <p>Powered by EverAfter</p>
+                    <p>Powered by Beginnings and Endings</p>
                 </div>
             </div>
 

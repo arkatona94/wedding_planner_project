@@ -138,6 +138,7 @@ interface WeddingState {
   setUser: (user: AuthUser | null) => void
   updateUser: (updates: Partial<AuthUser>) => Promise<void>
   signOut: () => Promise<void>
+  resetStore: () => void
 
   // Maintenance
   recalculateBudget: () => void
@@ -187,7 +188,10 @@ const defaultAppSettings: AppSettings = {
     rsvpReminderEnabled: true,
     budgetAlertThresholds: [80, 90, 100]
   },
-  enabledModules: ['dashboard', 'checklist', 'budget']
+  enabledModules: ['dashboard', 'checklist', 'budget'],
+  geminiApiKey: import.meta.env.VITE_GEMINI_API_KEY || '',
+  replicateApiToken: import.meta.env.VITE_REPLICATE_API_TOKEN || '',
+  fashnApiKey: import.meta.env.VITE_FASHN_API_KEY || ''
 }
 
 // Default checklist items based on wedding planning best practices
@@ -282,7 +286,14 @@ export const useWeddingStore = create<WeddingState>()(
     (set, get) => ({
       // User & Auth
       user: null,
-      setUser: (user) => set({ user }),
+      setUser: (user) => {
+        const state = get()
+        // If user changed or logging out, reset wedding data
+        if (state.user?.id !== user?.id) {
+          state.resetStore()
+        }
+        set({ user })
+      },
       updateUser: async (updates) => {
         const state = get()
         if (!state.user) return
@@ -307,8 +318,39 @@ export const useWeddingStore = create<WeddingState>()(
         }
       },
       signOut: async () => {
-        await supabase.auth.signOut()
-        set({ user: null })
+        try {
+          // Attempt a clean sign out from Supabase
+          const { error } = await supabase.auth.signOut()
+          if (error) console.warn('Supabase sign out error:', error)
+        } catch (err) {
+          console.error('Failed to sign out from Supabase:', err)
+        } finally {
+          const state = get()
+          state.resetStore()
+          set({ user: null })
+
+          // Clear persistence and force a hard reload to the login page
+          // This ensures any broken auth loops are broken
+          localStorage.removeItem('wedding-planner-storage')
+          window.location.href = '/login'
+        }
+      },
+
+      resetStore: () => {
+        set({
+          wedding: defaultWedding,
+          checklist: defaultChecklist,
+          budgetItems: defaultBudget,
+          guests: [],
+          vendors: [],
+          tables: [],
+          roomElements: [],
+          timelineEvents: [],
+          photos: [],
+          inspirationBoards: [],
+          websiteSettings: defaultWebsiteSettings,
+          notifications: []
+        })
       },
 
       // Wedding Details
