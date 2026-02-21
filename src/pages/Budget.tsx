@@ -1,92 +1,57 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-import { format } from 'date-fns'
+import {
+  Plus, Edit2, CheckCircle,
+  DollarSign, Upload, ArrowUpRight, Crown, FileText, AlertTriangle, Lock
+} from 'lucide-react'
 import type { BudgetItem } from '../types'
-import { exportBudgetPDF } from '../utils/exports'
-import { generateSmartBudget, BUDGET_ALLOCATIONS } from '../utils/budgetCalculator'
-import { generateVendorsForLocation, hasRealVendorData } from '../utils/vendorGenerator'
 
-import venuesData from '../data/venues.json'
-import photographyData from '../data/photography.json'
-import cateringData from '../data/catering.json'
-import videographyData from '../data/videography.json'
-import floristData from '../data/florist.json'
-import musicData from '../data/music.json'
-import officiantData from '../data/officiant.json'
-import cakeData from '../data/cake.json'
-import rentalsData from '../data/rentals.json'
-import transportationData from '../data/transportation.json'
-import hairMakeupData from '../data/hair_makeup.json'
+// --- Constants ---
 
-const budgetCategories = [
-  'Venue', 'Catering', 'Photography', 'Videography', 'Music/DJ',
-  'Flowers', 'Attire', 'Cake', 'Invitations', 'Transportation',
-  'Hair & Makeup', 'Decor', 'Favors', 'Officiant', 'Other'
+const PREFERRED_CATEGORIES = [
+  { name: 'Venue', defaultAlloc: 8000, icon: '🏰' },
+  { name: 'Catering', defaultAlloc: 6000, icon: '🍽️' },
+  { name: 'Photography', defaultAlloc: 3500, icon: '📸' },
+  { name: 'Videography', defaultAlloc: 2500, icon: '🎥' },
+  { name: 'Flowers', defaultAlloc: 2000, icon: '🌸' }, // Mapped from Florist
+  { name: 'Music/DJ', defaultAlloc: 1500, icon: '🎵' }, // Mapped from DJ/Band
+  { name: 'Attire', defaultAlloc: 2500, icon: '👗' }, // Dress & Attire
+  { name: 'Invitations', defaultAlloc: 500, icon: '💌' },
+  { name: 'Decor', defaultAlloc: 1000, icon: '✨' }, // Favors & Decor
+  { name: 'Transportation', defaultAlloc: 0, icon: '🚗' }, // Extra
+  { name: 'Hair & Makeup', defaultAlloc: 0, icon: '💄' }, // Extra
+  { name: 'Other', defaultAlloc: 2500, icon: '🧩' } // Miscellaneous
 ]
 
-const categoryToVendorKey: Record<string, string> = {
-  'Venue': 'venue',
-  'Catering': 'catering',
-  'Photography': 'photography',
-  'Videography': 'videography',
-  'Music/DJ': 'music',
-  'Flowers': 'florist',
-  'Cake': 'cake',
-  'Transportation': 'transportation',
-  'Hair & Makeup': 'hair-makeup',
-  'Decor': 'rentals',
-  'Officiant': 'officiant'
-}
-
-const vendorDataMap: Record<string, any> = {
-  venue: venuesData,
-  photography: photographyData,
-  catering: cateringData,
-  videography: videographyData,
-  florist: floristData,
-  music: musicData,
-  officiant: officiantData,
-  cake: cakeData,
-  rentals: rentalsData,
-  transportation: transportationData,
-  'hair-makeup': hairMakeupData
-}
-
-// Location-aware vendor list function - uses generated data for user's location
-const getVendorList = (budgetCategory: string, userState?: string, userCity?: string) => {
-  const vendorKey = categoryToVendorKey[budgetCategory]
-  if (!vendorKey) return []
-
-  // If user has location set and it's different from our real data (Cincinnati/OH)
-  // generate location-appropriate vendors
-  if (userState && !hasRealVendorData(userState, userCity)) {
-    return generateVendorsForLocation(vendorKey, userCity || 'Downtown', userState, 5)
-  }
-
-  // Fall back to static data for Cincinnati/OH area
-  const data = vendorDataMap[vendorKey]
-  if (!data) return []
-  return data.results || data.all_venues || []
-}
-
-const categoryColors: Record<string, string> = {
-  'Venue': '#c97f66', 'Catering': '#9dc183', 'Photography': '#f7e7ce',
-  'Videography': '#d4a5a5', 'Music/DJ': '#d4af37', 'Flowers': '#f8e1e4',
-  'Attire': '#b5644d', 'Cake': '#e9bfb0', 'Invitations': '#97503e',
-  'Transportation': '#7d4336', 'Hair & Makeup': '#dba08b', 'Decor': '#f3d9d0',
-  'Favors': '#683a30', 'Officiant': '#f9ede8', 'Other': '#999'
+const CATEGORY_COLORS: Record<string, string> = {
+  'Venue': '#c97f66',
+  'Catering': '#9dc183',
+  'Photography': '#f7e7ce',
+  'Videography': '#d4a5a5',
+  'Music/DJ': '#d4af37',
+  'Flowers': '#f8e1e4',
+  'Attire': '#b5644d',
+  'Invitations': '#97503e',
+  'Decor': '#f3d9d0',
+  'Other': '#999999',
+  'Transportation': '#7d4336',
+  'Hair & Makeup': '#dba08b',
+  'Favors': '#683a30',
+  'Officiant': '#f9ede8',
+  'Cake': '#e9bfb0'
 }
 
 export default function Budget() {
-  const { wedding, budgetItems, addBudgetItem, updateBudgetItem, deleteBudgetItem, setWedding, recalculateBudget, user } = useWeddingStore()
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [editingItem, setEditingItem] = useState<BudgetItem | null>(null)
-  const [syncSuccess, setSyncSuccess] = useState(false)
-  const [showSmartBudgetModal, setShowSmartBudgetModal] = useState(false)
-  const [smartBudgetPreview, setSmartBudgetPreview] = useState<Omit<BudgetItem, 'id'>[]>([])
+  const { wedding, budgetItems, addBudgetItem, updateBudgetItem, setWedding, setBudgetItems } = useWeddingStore()
 
+  // UI State
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showPremiumModal, setShowPremiumModal] = useState(false)
+  const [editingItem, setEditingItem] = useState<BudgetItem | null>(null)
+
+  // Form State
   const [formData, setFormData] = useState({
     category: 'Venue',
     vendor: '',
@@ -94,24 +59,103 @@ export default function Budget() {
     actualCost: 0,
     paid: 0,
     dueDate: '',
-    notes: ''
+    notes: '',
+    paymentStatus: 'pending' as 'pending' | 'deposit' | 'paid',
+    receiptUrl: ''
   })
 
+  // --- Calculations ---
+
   const totalBudget = wedding.totalBudget
-  const totalEstimated = budgetItems.reduce((sum, item) => sum + item.estimatedCost, 0)
-  const totalActual = budgetItems.reduce((sum, item) => sum + item.actualCost, 0)
-  const totalPaid = budgetItems.reduce((sum, item) => sum + item.paid, 0)
-  const remaining = totalBudget - totalActual
-  const unpaid = totalActual - totalPaid
+  const totalSpent = budgetItems.reduce((sum, item) => sum + item.actualCost, 0)
+  const totalRemaining = totalBudget - totalSpent
+  const percentUsed = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0
+  const isOverBudget = totalSpent > totalBudget
 
-  const budgetByCategory = budgetCategories.map(category => {
-    const items = budgetItems.filter(item => item.category === category)
-    const total = items.reduce((sum, item) => sum + item.actualCost, 0)
-    return { name: category, value: total, color: categoryColors[category] }
-  }).filter(item => item.value > 0)
+  // Group items by category for cards
+  const categoryStats = useMemo(() => {
+    // Start with all preferred categories
+    const stats: Record<string, { allocated: number, spent: number, items: BudgetItem[], icon: string }> = {}
 
-  const isOverBudget = totalActual > totalBudget
-  const budgetWarning = totalActual > totalBudget * 0.9
+    // Initialize defaults
+    PREFERRED_CATEGORIES.forEach(cat => {
+      stats[cat.name] = { allocated: 0, spent: 0, items: [], icon: cat.icon }
+    })
+
+    // Aggregate items
+    budgetItems.forEach(item => {
+      if (!stats[item.category]) {
+        // Handle custom categories not in default list
+        stats[item.category] = { allocated: 0, spent: 0, items: [], icon: '📦' }
+      }
+      stats[item.category].allocated += item.estimatedCost
+      stats[item.category].spent += item.actualCost
+      stats[item.category].items.push(item)
+    })
+
+    return Object.entries(stats).map(([name, data]) => ({
+      name,
+      ...data,
+      remaining: data.allocated - data.spent,
+      progress: data.allocated > 0 ? (data.spent / data.allocated) * 100 : 0,
+      isOver: data.spent > data.allocated
+    })).sort((a, b) => {
+      // Sort by preferred order, then others
+      const idxA = PREFERRED_CATEGORIES.findIndex(c => c.name === a.name)
+      const idxB = PREFERRED_CATEGORIES.findIndex(c => c.name === b.name)
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      if (idxA !== -1) return -1
+      if (idxB !== -1) return 1
+      return 0
+    })
+  }, [budgetItems])
+
+  // Pie Chart Data
+  const pieData = categoryStats
+    .filter(cat => cat.spent > 0)
+    .map(cat => ({
+      name: cat.name,
+      value: cat.spent,
+      color: CATEGORY_COLORS[cat.name] || '#999'
+    }))
+
+  // --- Handlers ---
+
+  const handleResetToDefault = () => {
+    if (window.confirm('This will replace your current budget items with the recommended layout. Existing items will be removed. Continue?')) {
+      const newItems = PREFERRED_CATEGORIES.map(cat => ({
+        // Using a "General Allocation" item for the category target
+        id: crypto.randomUUID(),
+        category: cat.name,
+        vendor: `${cat.name} Allocation`,
+        estimatedCost: cat.defaultAlloc,
+        actualCost: 0,
+        paid: 0,
+        dueDate: '',
+        notes: 'Initial Budget Allocation',
+        paymentStatus: 'pending' as const
+      })).filter(item => item.estimatedCost > 0)
+
+      setBudgetItems(newItems)
+      setWedding({ totalBudget: 30000 }) // Set default total
+    }
+  }
+
+  const handleOpenAddModal = (category?: string) => {
+    setEditingItem(null)
+    setFormData({
+      category: category || 'Venue',
+      vendor: '',
+      estimatedCost: 0,
+      actualCost: 0,
+      paid: 0,
+      dueDate: '',
+      notes: '',
+      paymentStatus: 'pending',
+      receiptUrl: ''
+    })
+    setShowAddModal(true)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -120,422 +164,408 @@ export default function Budget() {
     } else {
       addBudgetItem(formData)
     }
-    resetForm()
-  }
-
-  const resetForm = () => {
-    setFormData({
-      category: 'Venue',
-      vendor: '',
-      estimatedCost: 0,
-      actualCost: 0,
-      paid: 0,
-      dueDate: '',
-      notes: ''
-    })
     setShowAddModal(false)
-    setEditingItem(null)
   }
 
-  const startEdit = (item: BudgetItem) => {
-    setEditingItem(item)
-    setFormData({
-      category: item.category,
-      vendor: item.vendor,
-      estimatedCost: item.estimatedCost,
-      actualCost: item.actualCost,
-      paid: item.paid,
-      dueDate: item.dueDate,
-      notes: item.notes
-    })
-    setShowAddModal(true)
-  }
+  // --- Render ---
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
             <span>/</span>
             <span className="text-gray-400">Budget</span>
           </div>
-          <h1 className="text-2xl font-serif text-gray-800">Budget Tracker</h1>
-          <p className="text-gray-500">Track your wedding expenses</p>
+          <h1 className="text-3xl font-serif text-gray-800">Budget Tracker</h1>
+          <p className="text-gray-500">Manage your wedding expenses effectively</p>
         </div>
-        <div className="flex gap-3">
-          <Link to="/budget/detailed" className="btn-secondary flex items-center gap-2">
-            📊 View Full Table
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={handleResetToDefault}
+            className="btn-secondary text-sm flex items-center gap-2"
+          >
+            <FileText size={16} /> Load Template
+          </button>
+          <Link to="/budget/detailed" className="btn-secondary text-sm flex items-center gap-2">
+            <FileText size={16} /> View Full Table
           </Link>
           <button
-            onClick={() => {
-              recalculateBudget()
-              setSyncSuccess(true)
-              setTimeout(() => setSyncSuccess(false), 3000)
-            }}
-            className="btn-secondary flex items-center gap-2"
-            title="Ensures all vendors have budget items and updates costs"
+            onClick={() => setShowPremiumModal(true)}
+            className="btn-secondary text-sm flex items-center gap-2 text-primary-600 border-primary-200"
           >
-            {syncSuccess ? '✅ Synced' : '🔄 Sync Vendors'}
-          </button>
-          <button
-            onClick={() => {
-              const coupleNames = wedding.partner1Name && wedding.partner2Name
-                ? `${wedding.partner1Name} & ${wedding.partner2Name}`
-                : 'Wedding'
-              const weddingDate = wedding.weddingDate
-                ? format(new Date(wedding.weddingDate), 'MMMM d, yyyy')
-                : ''
-              exportBudgetPDF(budgetItems, wedding.totalBudget, coupleNames, weddingDate)
-            }}
-            className="btn-secondary"
-          >
-            Export PDF
-          </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary"
-          >+ Add Expense</button>
-          <button
-            onClick={() => {
-              const preview = generateSmartBudget(totalBudget, user?.state, user?.city)
-              setSmartBudgetPreview(preview)
-              setShowSmartBudgetModal(true)
-            }}
-            className="btn-secondary flex items-center gap-2"
-            title={user?.state
-              ? `Budget adjusted for ${user.city ? user.city + ', ' : ''}${user.state} pricing`
-              : 'Auto-generate budget breakdown based on industry standards'
-            }
-          >
-            ✨ Smart Breakdown{user?.state ? ` (${user.state})` : ''}
+            <Crown size={16} /> Premium Categories
           </button>
         </div>
       </div>
 
       {/* Budget Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="card">
-          <p className="text-sm text-gray-500">Total Budget</p>
-          <p className="text-2xl font-serif text-gray-800">${totalBudget.toLocaleString()}</p>
-          <input
-            type="number"
-            className="input-field mt-2 text-sm"
-            value={totalBudget}
-            onChange={(e) => setWedding({ totalBudget: Number(e.target.value) })}
-          />
-        </div>
-        <div className="card">
-          <p className="text-sm text-gray-500">Estimated</p>
-          <p className="text-2xl font-serif text-gray-800">${totalEstimated.toLocaleString()}</p>
-        </div>
-        <div className="card">
-          <p className="text-sm text-gray-500">Actual Spent</p>
-          <p className={`text-2xl font-serif ${isOverBudget ? 'text-red-600' : 'text-gray-800'}`}>
-            ${totalActual.toLocaleString()}
-          </p>
-        </div>
-        <div className="card">
-          <p className="text-sm text-gray-500">Paid</p>
-          <p className="text-2xl font-serif text-green-600">${totalPaid.toLocaleString()}</p>
-        </div>
-        <div className="card">
-          <p className="text-sm text-gray-500">Remaining</p>
-          <p className={`text-2xl font-serif ${remaining < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-            ${remaining.toLocaleString()}
-          </p>
+      <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-gray-100 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary-100/50 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-50" />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+          {/* Total Budget */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Budget</p>
+            <div className="flex items-center gap-2">
+              <span className="text-4xl font-serif text-gray-800">${totalBudget.toLocaleString()}</span>
+              <button className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+                <Edit2 size={14} />
+              </button>
+            </div>
+            <div className="h-2 w-full bg-gray-100 rounded-full mt-2 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-1000 ${isOverBudget ? 'bg-red-500' : 'bg-primary-500'}`}
+                style={{ width: `${Math.min(percentUsed, 100)}%` }}
+              />
+            </div>
+            {totalBudget > 0 && (
+              <p className={`text-sm font-medium mt-2 ${totalRemaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {totalRemaining >= 0 ? (
+                  <>🎉 You're {Math.round((totalRemaining / totalBudget) * 100)}% under budget!</>
+                ) : (
+                  <>⚠️ You're ${(totalSpent - totalBudget).toLocaleString()} over budget!</>
+                )}
+              </p>
+            )}
+          </div>
+
+          {/* Spent */}
+          <div className="md:border-l md:pl-8 border-gray-100">
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Spent</p>
+            <p className={`text-3xl font-serif ${isOverBudget ? 'text-red-600' : 'text-primary-600'}`}>
+              ${totalSpent.toLocaleString()}
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              Across {budgetItems.length} expenses
+            </p>
+          </div>
+
+          {/* Remaining */}
+          <div className="md:border-l md:pl-8 border-gray-100">
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Remaining</p>
+            <p className="text-3xl font-serif text-gray-800">
+              ${totalRemaining.toLocaleString()}
+            </p>
+            <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+              <CheckCircle size={14} /> On Track
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Budget Warning */}
-      {budgetWarning && (
-        <div className={`p-4 rounded-lg ${isOverBudget ? 'bg-red-50 text-red-800' : 'bg-yellow-50 text-yellow-800'}`}>
-          <p className="font-medium">
-            {isOverBudget
-              ? `You're over budget by $${Math.abs(remaining).toLocaleString()}!`
-              : `Warning: You've used ${Math.round((totalActual / totalBudget) * 100)}% of your budget.`}
-          </p>
-        </div>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Categories Grid */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-serif text-gray-800">Budget Categories</h2>
+            <button
+              onClick={() => setShowPremiumModal(true)}
+              className="text-sm text-primary-600 font-medium hover:underline flex items-center gap-1"
+            >
+              <Plus size={16} /> Add Custom Category
+            </button>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pie Chart */}
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-800 mb-4">Spending by Category</h3>
-          {budgetByCategory.length > 0 ? (
-            <div className="h-80">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {categoryStats.map((cat) => (
+              <div key={cat.name} className="group bg-white rounded-xl p-5 border border-gray-200 hover:border-primary-200 hover:shadow-lg transition-all">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-xl">
+                      {cat.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-800">{cat.name}</h3>
+                      <p className="text-xs text-gray-500">${cat.allocated.toLocaleString()} allocated</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-lg font-bold block ${cat.isOver ? 'text-red-600' : 'text-gray-700'}`}>
+                      ${cat.remaining.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Left</span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="h-1.5 w-full bg-gray-100 rounded-full mb-4 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${cat.isOver ? 'bg-red-500' : 'bg-green-500'}`}
+                    style={{ width: `${Math.min(cat.progress, 100)}%` }}
+                  />
+                </div>
+
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Spent: <span className="text-gray-800 font-medium">${cat.spent.toLocaleString()}</span></span>
+                  <button
+                    onClick={() => handleOpenAddModal(cat.name)}
+                    className="text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                  >
+                    + Add Expense
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sidebar: Charts & Quick Actions */}
+        <div className="space-y-6">
+
+          {/* Visual Breakdown */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-medium text-gray-800 mb-4">Allocation Breakdown</h3>
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={budgetByCategory}
+                    data={pieData}
                     cx="50%"
                     cy="50%"
-                    outerRadius={100}
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
-                    {budgetByCategory.map((entry, index) => (
+                    {pieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                  <Tooltip formatter={(val: number) => `$${val.toLocaleString()}`} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">Add expenses to see breakdown</p>
-          )}
-        </div>
-
-        {/* Payment Status */}
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-800 mb-4">Payment Status</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Paid</span>
-                <span className="text-green-600">${totalPaid.toLocaleString()}</span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-bar-fill bg-green-500" style={{ width: `${totalActual > 0 ? (totalPaid / totalActual) * 100 : 0}%` }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Unpaid</span>
-                <span className="text-orange-600">${unpaid.toLocaleString()}</span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-bar-fill bg-orange-500" style={{ width: `${totalActual > 0 ? (unpaid / totalActual) * 100 : 0}%` }} />
-              </div>
-            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Budget Items Table */}
-      <div className="card overflow-hidden">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">All Expenses</h3>
-        {budgetItems.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No expenses added yet</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Category</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Vendor</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Estimated</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Actual</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Paid</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {budgetItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: categoryColors[item.category] || '#999' }} />
-                        {item.category}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{item.vendor || '-'}</td>
-                    <td className="px-4 py-3 text-right">${item.estimatedCost.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right">${item.actualCost.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right text-green-600">${item.paid.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => startEdit(item)} className="text-primary-600 hover:underline mr-3">Edit</button>
-                      <button onClick={() => deleteBudgetItem(item.id)} className="text-red-600 hover:underline">Delete</button>
-                    </td>
-                  </tr>
+          {/* Overspend Warnings */}
+          {categoryStats.filter(c => c.isOver).length > 0 && (
+            <div className="bg-red-50 rounded-2xl p-6 border border-red-100">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="text-red-500" size={20} />
+                <h3 className="text-red-800 font-medium">Overspend Alerts</h3>
+              </div>
+              <div className="space-y-3">
+                {categoryStats.filter(c => c.isOver).map(cat => (
+                  <div key={cat.name} className="bg-white p-3 rounded-lg border border-red-100 text-sm">
+                    <div className="flex justify-between mb-1">
+                      <span className="font-medium text-gray-700">{cat.name}</span>
+                      <span className="text-red-600 font-bold">-${Math.abs(cat.remaining).toLocaleString()}</span>
+                    </div>
+                    <div className="text-xs text-red-400">
+                      Exceeded ${cat.allocated.toLocaleString()} budget
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+          )}
+
+          {/* Tips Card */}
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Lock size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Unlock Premium</h3>
+                <p className="text-indigo-100 text-sm mb-4">
+                  Get unlimited custom categories, export to Excel, and AI budget insights.
+                </p>
+                <button
+                  onClick={() => setShowPremiumModal(true)}
+                  className="bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 transition-colors w-full"
+                >
+                  Upgrade Plan
+                </button>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Add Expense Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
-            <h2 className="text-xl font-serif text-gray-800 mb-4">{editingItem ? 'Edit Expense' : 'Add Expense'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl transform transition-all scale-100">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h2 className="text-xl font-serif text-gray-800">
+                {editingItem ? 'Edit Expense' : 'Add New Expense'}
+              </h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Category</label>
                   <select
-                    className="input-field"
+                    className="input-field w-full"
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    onChange={e => setFormData({ ...formData, category: e.target.value })}
                   >
-                    {budgetCategories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    {PREFERRED_CATEGORIES.map(c => (
+                      <option key={c.name} value={c.name}>{c.icon} {c.name}</option>
                     ))}
+                    <option value="Other">🧩 Other</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
-                  {getVendorList(formData.category).length > 0 ? (
-                    <div className="space-y-2">
-                      <select
-                        className="input-field"
-                        onChange={(e) => {
-                          const list = getVendorList(formData.category)
-                          const selectedVendor = list.find((v: any) => v.name === e.target.value)
 
-                          if (selectedVendor) {
-                            setFormData({
-                              ...formData,
-                              vendor: selectedVendor.name,
-                              estimatedCost: (selectedVendor.price_range?.length || 0) * 1000,
-                              notes: formData.notes || selectedVendor.website || ''
-                            })
-                          } else {
-                            // Custom selection or clear
-                            if (e.target.value === 'custom') {
-                              setFormData({ ...formData, vendor: '' })
-                            }
-                          }
-                        }}
-                        value={getVendorList(formData.category).some((v: any) => v.name === formData.vendor) ? formData.vendor : 'custom'}
-                      >
-                        <option value="custom">Select a vendor...</option>
-                        {getVendorList(formData.category).map((vendor: any, index: number) => (
-                          <option key={index} value={vendor.name}>
-                            {vendor.name} ({vendor.city}) - Est. ${(selectedVendor => (selectedVendor.price_range?.length || 0) * 1000)(vendor)}
-                          </option>
-                        ))}
-                        <option value="custom">Enter Custom Name...</option>
-                      </select>
-                      {(!getVendorList(formData.category).some((v: any) => v.name === formData.vendor)) && (
-                        <input
-                          type="text"
-                          placeholder="Enter vendor name"
-                          className="input-field"
-                          value={formData.vendor}
-                          onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                        />
-                      )}
-                    </div>
-                  ) : (
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Vendor Name</label>
+                  <input
+                    type="text"
+                    className="input-field w-full"
+                    placeholder="e.g. The Plaza Hotel"
+                    value={formData.vendor}
+                    onChange={e => setFormData({ ...formData, vendor: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Estimated Cost</label>
+                  <div className="relative">
+                    <DollarSign size={14} className="absolute left-3 top-3.5 text-gray-400" />
                     <input
-                      type="text"
-                      className="input-field"
-                      value={formData.vendor}
-                      onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                      type="number"
+                      className="input-field w-full pl-8"
+                      value={formData.estimatedCost || ''}
+                      onChange={e => setFormData({ ...formData, estimatedCost: Number(e.target.value) })}
                     />
-                  )}
+                  </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estimated ($)</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Actual Amount</label>
+                  <div className="relative">
+                    <DollarSign size={14} className="absolute left-3 top-3.5 text-gray-400" />
+                    <input
+                      type="number"
+                      className="input-field w-full pl-8"
+                      value={formData.actualCost || ''}
+                      onChange={e => setFormData({ ...formData, actualCost: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Date</label>
                   <input
-                    type="number"
-                    className="input-field"
-                    value={formData.estimatedCost || ''}
-                    onChange={(e) => setFormData({ ...formData, estimatedCost: Number(e.target.value) })}
+                    type="date"
+                    className="input-field w-full"
+                    value={formData.dueDate}
+                    onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Actual ($)</label>
-                  <input
-                    type="number"
-                    className="input-field"
-                    value={formData.actualCost || ''}
-                    onChange={(e) => setFormData({ ...formData, actualCost: Number(e.target.value) })}
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Status</label>
+                  <select
+                    className="input-field w-full"
+                    value={formData.paymentStatus}
+                    onChange={e => setFormData({ ...formData, paymentStatus: e.target.value as any })}
+                  >
+                    <option value="pending">⏳ Pending</option>
+                    <option value="deposit">💳 Deposit Paid</option>
+                    <option value="paid">✅ Fully Paid</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Receipt / Invoice</label>
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer">
+                    <Upload className="mx-auto text-gray-400 mb-2" size={20} />
+                    <p className="text-sm text-gray-500">Click to upload receipt</p>
+                    <p className="text-xs text-gray-400">(Supports PDF, JPG, PNG)</p>
+                  </div>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Notes</label>
+                  <textarea
+                    className="input-field w-full"
+                    rows={2}
+                    value={formData.notes}
+                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Paid ($)</label>
-                  <input
-                    type="number"
-                    className="input-field"
-                    value={formData.paid || ''}
-                    onChange={(e) => setFormData({ ...formData, paid: Number(e.target.value) })}
-                  />
-                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                <input
-                  type="date"
-                  className="input-field"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                <textarea
-                  className="input-field"
-                  rows={2}
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                />
-              </div>
+
               <div className="flex gap-3 justify-end pt-4">
-                <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">{editingItem ? 'Save Changes' : 'Add Expense'}</button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                >
+                  {editingItem ? 'Save Changes' : 'Add Expense'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Smart Budget Modal */}
-      {showSmartBudgetModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto py-8">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-serif text-gray-800 mb-2">✨ Smart Budget Breakdown</h2>
-            <p className="text-gray-500 mb-4">
-              Based on your ${totalBudget.toLocaleString()} budget, here's an industry-standard allocation:
-            </p>
-
-            <div className="space-y-2 mb-6">
-              {smartBudgetPreview.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: categoryColors[item.category] || '#999' }}
-                    />
-                    <span className="font-medium text-gray-800">{item.category}</span>
-                    <span className="text-xs text-gray-500">
-                      ({Math.round((BUDGET_ALLOCATIONS[item.category] || 0) * 100)}%)
-                    </span>
-                  </div>
-                  <span className="font-mono text-gray-700">
-                    ${item.estimatedCost.toLocaleString()}
-                  </span>
-                </div>
-              ))}
+      {/* Premium Modal */}
+      {showPremiumModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 text-center text-white">
+              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+                <Crown size={32} className="text-yellow-400" />
+              </div>
+              <h2 className="text-2xl font-serif text-white mb-2">Upgrade to Premium</h2>
+              <p className="text-gray-300 text-sm">Unlock unlimited categories & insights</p>
             </div>
+            <div className="p-8 space-y-6">
+              <ul className="space-y-3">
+                <li className="flex items-center gap-3 text-gray-700">
+                  <CheckCircle size={18} className="text-green-500" />
+                  Unlimited Custom Categories
+                </li>
+                <li className="flex items-center gap-3 text-gray-700">
+                  <CheckCircle size={18} className="text-green-500" />
+                  PDF & Excel Exports
+                </li>
+                <li className="flex items-center gap-3 text-gray-700">
+                  <CheckCircle size={18} className="text-green-500" />
+                  AI Contract Scanning
+                </li>
+                <li className="flex items-center gap-3 text-gray-700">
+                  <CheckCircle size={18} className="text-green-500" />
+                  Vendor Recommendations
+                </li>
+              </ul>
 
-            <div className="border-t pt-4 flex gap-3 justify-end">
-              <button
-                onClick={() => setShowSmartBudgetModal(false)}
-                className="btn-secondary"
-              >
-                Cancel
+              <button className="btn-primary w-full py-3 flex items-center justify-center gap-2 group">
+                Get Premium - $4.99/mo <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
               </button>
               <button
-                onClick={() => {
-                  // Add all smart budget items
-                  smartBudgetPreview.forEach(item => addBudgetItem(item))
-                  setShowSmartBudgetModal(false)
-                }}
-                className="btn-primary"
+                onClick={() => setShowPremiumModal(false)}
+                className="w-full text-center text-sm text-gray-400 hover:text-gray-600"
               >
-                Apply Breakdown
+                Maybe Later
               </button>
             </div>
           </div>
         </div>
       )}
+
     </div>
   )
 }

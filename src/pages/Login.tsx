@@ -57,7 +57,12 @@ export default function Login() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div
+            className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat bg-fixed"
+            style={{
+                backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.85)), url('/images/landing-bg.png')`,
+            }}
+        >
             <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
                 <div className="text-center">
                     <h2 className="text-3xl font-serif text-gray-900">Welcome Back</h2>

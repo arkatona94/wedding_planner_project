@@ -272,13 +272,11 @@ function generateWebsite(name: string): string {
 /**
  * Convert price to price range indicator
  */
-function getPriceRange(price: number, category: string): string {
-    const base = BASE_PRICING[category] || { min: 1000, max: 5000 };
-    const max = base.max;
-
-    if (price < 1000) return '$';
-    if (price < 3000) return '$$';
-    if (price < 6000) return '$$$';
+function getPriceRange(price: number, category?: string): string {
+    const base = category ? (BASE_PRICING[category] || { min: 1000, max: 5000 }) : { min: 3000, max: 15000 };
+    if (price < base.min * 1.5) return '$';
+    if (price < base.max * 0.8) return '$$';
+    if (price < base.max * 1.2) return '$$$';
     return '$$$$';
 }
 
@@ -350,6 +348,13 @@ export function generateVendorsForLocation(
         const zip = Math.floor(Math.random() * 89999) + 10000;
         const address = `${streetNum} ${street}, ${formattedCity}, ${state.toUpperCase()} ${zip}`;
 
+        // Generate quality score
+        const qualityScore = Math.floor(85 + Math.random() * 14);
+
+        const images = Array.from({ length: 20 }, (_, index) =>
+            `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 1000000000)}?q=80&w=800&auto=format&fit=crop&sig=${category}-${i}-${index}`
+        );
+
         const vendor: Vendor = {
             id: uuidv4(),
             name,
@@ -365,11 +370,15 @@ export function generateVendorsForLocation(
             depositPaid: false,
             depositAmount: 0,
             tags: isReal ? ['Top Rated', 'Luxury', 'Verified', 'Popular'] : ['Local', 'Recommended'],
-            costRange: getPriceRange(adjustedPrice, category),
+            costRange: getPriceRange(adjustedPrice),
             reviewCount,
             address,
             description: `${category === 'venue' ? 'Premier event space' : 'Professional wedding services'} located in ${formattedCity}. Known for exceptional quality and service.`,
-            isGenerated: true
+            isGenerated: true,
+            qualityScore,
+            verified: isReal || Math.random() > 0.7,
+            sampleReview: review,
+            images
         };
 
         vendors.push(vendor);
@@ -404,7 +413,7 @@ export function generateAllVendors(city: string, state: string): Vendor[] {
 /**
  * Check if real data exists (legacy function)
  */
-export function hasRealVendorData(state: string, city?: string): boolean {
+export function hasRealVendorData(_state: string, _city?: string): boolean {
     return false; // Always use generator
 }
 
@@ -422,3 +431,6 @@ export function getLocationPriceEstimate(
         average: Math.round(((base.min + base.max) / 2) * multiplier)
     }
 }
+
+
+

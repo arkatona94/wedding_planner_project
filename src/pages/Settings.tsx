@@ -1,66 +1,85 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useWeddingStore } from '../store/weddingStore'
-import { format } from 'date-fns'
-import { CheckCircle2, LayoutDashboard, Calculator, Users, Globe, Grid, Clock, Camera, Sparkles, Scale, Wand2 } from 'lucide-react'
-import { fileToCompressedDataUrl } from '../lib/imageUtils'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  User,
+  Heart,
+  Bell,
+  Users,
+  Lock,
+  Check,
+  Phone,
+  Calendar,
+  MapPin,
+  ChevronRight,
+  ShieldCheck,
+  Download,
+  Trash2,
+  AlertTriangle,
+  X
+} from 'lucide-react'
 
-const modules = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, required: true },
-  { id: 'checklist', label: 'Checklist', icon: CheckCircle2 },
-  { id: 'budget', label: 'Budget', icon: Calculator },
-  { id: 'guests', label: 'Guest List', icon: Users },
-  { id: 'website', label: 'Website', icon: Globe },
-  { id: 'seating', label: 'Seating Chart', icon: Grid },
-  { id: 'timeline', label: 'Timeline', icon: Clock },
-  { id: 'photos', label: 'Photos', icon: Camera },
-  { id: 'inspiration', label: 'Inspiration', icon: Sparkles },
-  { id: 'vendors', label: 'Vendors', icon: Users },
-  { id: 'marriage-laws', label: 'Marriage Laws', icon: Scale },
-]
+type TabId = 'profile' | 'wedding' | 'notifications' | 'partner' | 'privacy'
 
 export default function Settings() {
-  const { wedding, setWedding, checklist, budgetItems, guests, vendors, tables, timelineEvents, photos, appSettings, updateAppSettings, user } = useWeddingStore()
-  const [showClearModal, setShowClearModal] = useState(false)
+  const {
+    user,
+    updateUser,
+    wedding,
+    setWedding,
+    appSettings,
+    updateAppSettings,
+    signOut,
+    checklist,
+    budgetItems,
+    guests,
+    vendors,
+    tables,
+    timelineEvents
+  } = useWeddingStore()
+
+  const [activeTab, setActiveTab] = useState<TabId>('profile')
+  const [showToast, setShowToast] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [confirmText, setConfirmText] = useState('')
-  const [isUploadingBridePhoto, setIsUploadingBridePhoto] = useState(false)
+  const lastSavedRef = useRef<string>('')
 
-  const handleBridePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.')
-      return
+  // Auto-save logic
+  useEffect(() => {
+    const currentData = JSON.stringify({ user, wedding, appSettings })
+    if (lastSavedRef.current && lastSavedRef.current !== currentData) {
+      const timer = setTimeout(() => {
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 3000)
+        lastSavedRef.current = currentData
+      }, 1000)
+      return () => clearTimeout(timer)
     }
-
-    setIsUploadingBridePhoto(true)
-
-    try {
-      // Compress to a reasonable size for LLM tokens and local storage
-      const dataUrl = await fileToCompressedDataUrl(file, 800, 800, 0.7)
-      if (dataUrl) {
-        updateAppSettings({ bridePhoto: dataUrl })
-      }
-    } catch (err) {
-      console.error('Failed to process image:', err)
-      alert('Failed to process photo. Please try again.')
-    } finally {
-      setIsUploadingBridePhoto(false)
-      // Reset input
-      e.target.value = ''
+    if (!lastSavedRef.current) {
+      lastSavedRef.current = currentData
     }
-  }
+  }, [user, wedding, appSettings])
 
-  const handleRemoveBridePhoto = () => {
-    if (confirm('Remove your bride photo? This will disable the dress try-on feature until you upload a new photo.')) {
-      updateAppSettings({ bridePhoto: undefined })
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'wedding', label: 'Wedding Details', icon: Heart },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'partner', label: 'Partner Collaboration', icon: Users },
+    { id: 'privacy', label: 'Privacy & Security', icon: Lock },
+  ]
+
+  const handleDeleteAccount = () => {
+    if (confirmText === 'DELETE') {
+      // In a real app, this would call an API
+      alert('Account deletion requested. This would permanently remove all your data.')
+      signOut()
     }
   }
 
   const exportData = () => {
     const data = {
+      user,
       wedding,
       checklist,
       budgetItems,
@@ -68,523 +87,571 @@ export default function Settings() {
       vendors,
       tables,
       timelineEvents,
-      photos: photos.map(p => ({ ...p, url: '[Image data removed for export]' })),
       exportedAt: new Date().toISOString()
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `wedding-planner-backup-${format(new Date(), 'yyyy-MM-dd')}.json`
+    a.download = `wedding-planner-data-export.json`
     a.click()
   }
 
-  const handleClearData = () => {
-    if (confirmText === 'Clear Data') {
-      localStorage.removeItem('wedding-planner-storage')
-      window.location.reload()
-    }
-  }
-
-  const clearAllData = () => {
-    setShowClearModal(true)
-    setConfirmText('')
-  }
-
   return (
-    <div className="space-y-6 max-w-3xl">
-      <div>
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-          <Link to="/" className="hover:text-primary-600 transition-colors">Dashboard</Link>
-          <span>/</span>
-          <span className="text-gray-400">Settings</span>
-        </div>
-        <h1 className="text-2xl font-serif text-gray-800">Settings</h1>
-        <p className="text-gray-500">Manage your wedding details and preferences</p>
-      </div>
-
-      {/* Account Settings */}
-      <div className="card">
-        <h3 className="font-medium text-gray-800 mb-4">Account</h3>
-        <div className="space-y-4">
-          <div className="flex items-center gap-4 p-4 bg-primary-50 rounded-xl border border-primary-100">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary-600 font-bold text-lg shadow-sm">
-              {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+    <div className="max-w-5xl mx-auto pb-20">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 right-8 z-50 bg-green-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-green-500"
+          >
+            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+              <Check className="w-4 h-4" />
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-gray-800">{user?.name || 'Wedding Planner'}</p>
-              <p className="text-sm text-gray-500">{user?.email}</p>
-            </div>
-            <Link
-              to="/forgot-password"
-              className="text-xs font-medium text-primary-600 hover:text-primary-700 bg-white px-3 py-2 rounded-lg shadow-sm border border-primary-100"
-            >
-              Change Password
-            </Link>
-          </div>
-        </div>
+            <span className="font-medium text-sm">Settings saved</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="mb-10">
+        <h1 className="text-4xl font-serif text-gray-900 mb-2">Settings</h1>
+        <p className="text-gray-500">Manage your profile, wedding details, and preferences</p>
       </div>
 
-      {/* Location Settings */}
-      <div className="card">
-        <h3 className="font-medium text-gray-800 mb-4">Location</h3>
-        <p className="text-sm text-gray-500 mb-4">Your location helps us provide accurate pricing estimates and local vendor suggestions.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="e.g. Los Angeles"
-              value={user?.city || ''}
-              onChange={(e) => {
-                const { updateUser } = useWeddingStore.getState()
-                updateUser({ city: e.target.value })
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-            <select
-              className="input-field"
-              value={user?.state || ''}
-              onChange={(e) => {
-                const { updateUser } = useWeddingStore.getState()
-                updateUser({ state: e.target.value })
-              }}
-            >
-              <option value="">Select State</option>
-              {['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'].map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-      <div className="mt-4 flex justify-end">
-        <button
-          onClick={() => {
-            const { fetchVendorsForLocation, user } = useWeddingStore.getState()
-            if (user?.city && user?.state) {
-              fetchVendorsForLocation(user.city, user.state)
-              alert(`Found top rated vendors for ${user.city}, ${user.state}! Check the Vendors page.`)
-            } else {
-              alert('Please enter a City and select a State first.')
-            }
-          }}
-          className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-2"
-        >
-          <Users className="w-4 h-4" />
-          Find Local Vendors
-        </button>
-      </div>
-
-
-      {/* AI Dress Try-On Settings */}
-      <div className="card">
-        <div className="flex items-center gap-2 mb-4">
-          <Wand2 className="w-5 h-5 text-primary-600" />
-          <h3 className="font-medium text-gray-800">AI Dress Try-On</h3>
-        </div>
-        <p className="text-sm text-gray-500 mb-6">
-          Upload your photo to virtually try on dresses from your Inspiration boards using AI.
-        </p>
-
-        {/* Bride Photo Upload */}
-        <div className="space-y-4">
-          <div className="flex items-start gap-4">
-            {appSettings.bridePhoto ? (
-              <div className="relative group">
-                <img
-                  src={appSettings.bridePhoto}
-                  alt="Your photo"
-                  className="w-32 h-40 object-contain rounded-xl border-2 border-primary-200 shadow-md bg-gray-100"
-                />
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Sidebar Tabs */}
+        <div className="lg:w-72 flex-shrink-0">
+          <div className="bg-white/60 backdrop-blur-md rounded-[2rem] p-4 border border-white shadow-xl">
+            <div className="space-y-1">
+              {tabs.map((tab) => (
                 <button
-                  onClick={handleRemoveBridePhoto}
-                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                  title="Remove photo"
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as TabId)}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 ${activeTab === tab.id
+                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
+                    : 'text-gray-500 hover:bg-white hover:text-gray-900'
+                    }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : 'text-gray-400'}`} />
+                  <span className="font-medium text-sm">{tab.label}</span>
+                  {activeTab === tab.id && (
+                    <motion.div layoutId="activeTab" className="ml-auto">
+                      <ChevronRight className="w-4 h-4 text-white/70" />
+                    </motion.div>
+                  )}
                 </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 md:p-10 border border-white shadow-2xl min-h-[600px]"
+          >
+            {/* TAB 1: PROFILE */}
+            {activeTab === 'profile' && (
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-2xl font-serif text-gray-900 mb-6">Profile Settings</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          value={user?.email || ''}
+                          readOnly
+                          className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-gray-500 cursor-not-allowed focus:outline-none"
+                        />
+                        <button className="absolute right-3 top-3 px-3 py-1.5 bg-white text-primary-600 text-xs font-bold rounded-xl border border-primary-100 hover:bg-primary-50 transition-colors shadow-sm">
+                          Change Email
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          value={user?.phone || ''}
+                          onChange={(e) => updateUser({ phone: e.target.value })}
+                          placeholder="+1 (555) 000-0000"
+                          className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
+                        />
+                        <Phone className="absolute right-5 top-4.5 w-5 h-5 text-gray-300" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">First Name</label>
+                      <input
+                        type="text"
+                        value={user?.firstName || ''}
+                        onChange={(e) => updateUser({ firstName: e.target.value })}
+                        className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Last Name</label>
+                      <input
+                        type="text"
+                        value={user?.lastName || ''}
+                        onChange={(e) => updateUser({ lastName: e.target.value })}
+                        className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-gray-50 flex flex-wrap gap-4">
+                  <button className="px-6 py-3.5 bg-primary-50 text-primary-700 rounded-2xl font-bold hover:bg-primary-100 transition-all flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Change Password
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDeleteModal(true)
+                      setConfirmText('')
+                    }}
+                    className="px-6 py-3.5 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition-all flex items-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Account
+                  </button>
+                </div>
               </div>
-            ) : (
-              <label className={`w-32 h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors ${isUploadingBridePhoto
-                ? 'border-primary-300 bg-primary-50'
-                : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50/50'
-                }`}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleBridePhotoUpload}
-                  disabled={isUploadingBridePhoto}
-                  className="hidden"
-                />
-                {isUploadingBridePhoto ? (
-                  <svg className="animate-spin h-8 w-8 text-primary-500" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                ) : (
-                  <>
-                    <Camera className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-xs text-gray-500 text-center px-2">Upload Photo</span>
-                  </>
-                )}
-              </label>
             )}
-            <div className="flex-1">
-              <h4 className="font-medium text-gray-700 mb-1">Your Photo</h4>
-              <p className="text-sm text-gray-500 mb-3">
-                Upload a full-body or half-body photo for best results. The AI will use this to show you in different dresses.
-              </p>
-              <div className="text-xs text-gray-400 space-y-1">
-                <p>Tips for best results:</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  <li>Use a well-lit, clear photo</li>
-                  <li>Stand in a neutral pose</li>
-                  <li>Plain background works best</li>
-                </ul>
+
+            {/* TAB 2: WEDDING DETAILS */}
+            {activeTab === 'wedding' && (
+              <div className="space-y-8">
+                <h2 className="text-2xl font-serif text-gray-900 mb-6">Wedding Details</h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Wedding Date</label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={wedding.weddingDate || ''}
+                        onChange={(e) => setWedding({ weddingDate: e.target.value })}
+                        className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
+                      />
+                      <Calendar className="absolute right-5 top-4.5 w-5 h-5 text-gray-300 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Venue Name</label>
+                    <input
+                      type="text"
+                      value={wedding.venue || ''}
+                      onChange={(e) => setWedding({ venue: e.target.value })}
+                      placeholder="Optional"
+                      className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Location (City, State)</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={`${user?.city || ''}${user?.city && user?.state ? ', ' : ''}${user?.state || ''}`}
+                        onChange={(e) => {
+                          const parts = e.target.value.split(', ')
+                          updateUser({ city: parts[0], state: parts[1] || '' })
+                        }}
+                        placeholder="City, State"
+                        className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
+                      />
+                      <MapPin className="absolute right-5 top-4.5 w-5 h-5 text-gray-300" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Guest Estimate</label>
+                      <input
+                        type="number"
+                        value={wedding.estimatedGuests || ''}
+                        onChange={(e) => setWedding({ estimatedGuests: parseInt(e.target.value) })}
+                        className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none font-medium"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Budget ($)</label>
+                      <input
+                        type="number"
+                        value={wedding.totalBudget || ''}
+                        onChange={(e) => setWedding({ totalBudget: parseInt(e.target.value) })}
+                        className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none font-medium text-primary-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6">
+                  <button className="w-full md:w-auto px-8 py-4 bg-primary-600 text-white rounded-[1.5rem] font-bold hover:bg-primary-700 transition-all shadow-xl shadow-primary-200 flex items-center justify-center gap-2">
+                    <Check className="w-5 h-5" />
+                    Save Wedding Details
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
+            )}
 
+            {/* TAB 3: NOTIFICATIONS */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-10">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <h2 className="text-2xl font-serif text-gray-900">Notification Preferences</h2>
+                  <div className="flex items-center bg-gray-50 rounded-2xl p-1 border border-gray-100">
+                    <span className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-widest">Email</span>
+                    <span className="w-[1px] h-4 bg-gray-200"></span>
+                    <span className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-widest">SMS</span>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Marketing & Updates */}
+                  <div className="flex items-center justify-between p-6 bg-white border border-gray-50 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+                    <div className="space-y-1 flex-1">
+                      <p className="font-bold text-gray-800">Marketing & Updates</p>
+                      <div className="flex items-center gap-4 mt-3">
+                        <select
+                          value={appSettings.notificationFrequency || 'weekly'}
+                          onChange={(e) => updateAppSettings({ notificationFrequency: e.target.value as any })}
+                          className="bg-gray-50 border-none text-sm font-medium text-gray-600 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-primary-500/20"
+                        >
+                          <option value="weekly">Weekly digest</option>
+                          <option value="daily">Daily summary</option>
+                          <option value="real-time">Real-time alerts</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex gap-6 pl-6 border-l border-gray-50">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={appSettings.marketingEmail} onChange={(e) => updateAppSettings({ marketingEmail: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={appSettings.marketingSms} onChange={(e) => updateAppSettings({ marketingSms: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Planning Reminders */}
+                  <div className="flex items-center justify-between p-6 bg-white border border-gray-50 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+                    <div className="space-y-1 flex-1">
+                      <p className="font-bold text-gray-800">Planning Reminders</p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {['1 month', '1 week', '3 days'].map(time => (
+                          <button
+                            key={time}
+                            onClick={() => {
+                              const current = appSettings.planningTimeline || []
+                              const updated = current.includes(time as any)
+                                ? current.filter(t => t !== time)
+                                : [...current, time]
+                              updateAppSettings({ planningTimeline: updated as any })
+                            }}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${(appSettings.planningTimeline || []).includes(time as any)
+                              ? 'bg-primary-100 border-primary-200 text-primary-700'
+                              : 'bg-gray-50 border-gray-100 text-gray-400'
+                              }`}
+                          >
+                            {time}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-6 pl-6 border-l border-gray-50">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={appSettings.planningEmail} onChange={(e) => updateAppSettings({ planningEmail: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={appSettings.planningSms} onChange={(e) => updateAppSettings({ planningSms: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Vendor Messages */}
+                  <div className="flex items-center justify-between p-6 bg-white border border-gray-50 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+                    <div className="space-y-1 flex-1">
+                      <p className="font-bold text-gray-800">Vendor Messages</p>
+                      <p className="text-xs text-gray-500">New messages and inquiry responses</p>
+                    </div>
+                    <div className="flex gap-6 pl-6 border-l border-gray-50">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={appSettings.vendorEmail} onChange={(e) => updateAppSettings({ vendorEmail: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={appSettings.vendorSms} onChange={(e) => updateAppSettings({ vendorSms: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* RSVP Updates */}
+                  <div className="flex items-center justify-between p-6 bg-white border border-gray-50 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+                    <div className="space-y-1 flex-1">
+                      <p className="font-bold text-gray-800">RSVP Updates</p>
+                      <p className="text-xs text-gray-500">Real-time alerts for guest responses</p>
+                    </div>
+                    <div className="flex gap-6 pl-6 border-l border-gray-50">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={appSettings.rsvpEmail} onChange={(e) => updateAppSettings({ rsvpEmail: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={appSettings.rsvpSms} onChange={(e) => updateAppSettings({ rsvpSms: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: PARTNER COLLABORATION */}
+            {activeTab === 'partner' && (
+              <div className="space-y-8">
+                <h2 className="text-2xl font-serif text-gray-900 mb-2">Partner Collaboration</h2>
+                <p className="text-gray-500 text-sm mb-8">Invite your partner to plan together in real-time.</p>
+
+                {appSettings.partnerEmail ? (
+                  <div className="space-y-6">
+                    <div className="p-8 bg-primary-50 rounded-[2rem] border border-primary-100 flex flex-col md:flex-row gap-6 items-center">
+                      <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center text-3xl shadow-soft border border-primary-100">
+                        {appSettings.partnerName?.charAt(0).toUpperCase() || 'P'}
+                      </div>
+                      <div className="flex-1 text-center md:text-left">
+                        <p className="text-xl font-bold text-gray-800">{appSettings.partnerName || 'Partner'}</p>
+                        <p className="text-gray-500 font-medium">{appSettings.partnerEmail}</p>
+                        <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${appSettings.partnerStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                            }`}>
+                            {appSettings.partnerStatus || 'Invited'}
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            {appSettings.partnerPermission || 'Collaborator'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <select
+                          value={appSettings.partnerPermission || 'collaborative'}
+                          onChange={(e) => updateAppSettings({ partnerPermission: e.target.value as any })}
+                          className="bg-white border-primary-100 text-xs font-bold text-primary-700 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-primary-500/20 shadow-sm"
+                        >
+                          <option value="collaborative">Collaborative</option>
+                          <option value="view">View Only</option>
+                          <option value="admin">Full Admin</option>
+                        </select>
+                        <button
+                          onClick={() => updateAppSettings({ partnerEmail: undefined })}
+                          className="p-3 bg-white text-red-500 rounded-xl border border-red-50 hover:bg-red-50 transition-colors shadow-sm"
+                          title="Remove Access"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="p-10 border-2 border-dashed border-gray-100 rounded-[2rem] text-center bg-gray-50/50">
+                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-soft border border-gray-100">
+                        <Users className="w-10 h-10 text-primary-200" />
+                      </div>
+                      <h3 className="text-xl font-serif text-gray-800 mb-2">Planning is better together</h3>
+                      <p className="text-gray-500 text-sm max-w-sm mx-auto mb-8">
+                        Invite your partner to share the load. They'll get full access to the budget, guest list, and more.
+                      </p>
+
+                      <div className="max-w-md mx-auto space-y-4">
+                        <input
+                          type="text"
+                          placeholder="Partner's Name"
+                          className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-primary-500/20"
+                          id="new-partner-name"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Partner's Email"
+                          className="w-full bg-white border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-primary-500/20"
+                          id="new-partner-email"
+                        />
+                        <button
+                          onClick={() => {
+                            const nameEl = document.getElementById('new-partner-name') as HTMLInputElement
+                            const emailEl = document.getElementById('new-partner-email') as HTMLInputElement
+                            if (emailEl.value) {
+                              updateAppSettings({
+                                partnerName: nameEl.value,
+                                partnerEmail: emailEl.value,
+                                partnerStatus: 'invited',
+                                partnerPermission: 'collaborative'
+                              })
+                            }
+                          }}
+                          className="w-full py-4 bg-primary-600 text-white rounded-2xl font-bold hover:bg-primary-700 transition-all shadow-xl shadow-primary-200"
+                        >
+                          Invite Partner
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 5: PRIVACY & SECURITY */}
+            {activeTab === 'privacy' && (
+              <div className="space-y-10">
+                <div className="flex items-center gap-6 p-8 bg-green-50 rounded-[2rem] border border-green-100">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-soft text-green-500 border border-green-100">
+                    <ShieldCheck className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-green-900">Your Privacy is Sacred</h3>
+                    <p className="text-green-700 text-sm">We don't sell your data to third parties. Every detail is encrypted and secure.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Link to="/privacy-policy" className="p-6 bg-white border border-gray-50 rounded-3xl flex items-center justify-between group hover:shadow-lg transition-all">
+                    <span className="font-bold text-gray-800">Privacy Policy</span>
+                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                  </Link>
+                  <Link to="/terms" className="p-6 bg-white border border-gray-50 rounded-3xl flex items-center justify-between group hover:shadow-lg transition-all">
+                    <span className="font-bold text-gray-800">Terms of Service</span>
+                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                  </Link>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-8 bg-gray-50 rounded-[2rem] border border-gray-100">
+                    <div className="flex-1 pr-8">
+                      <p className="font-bold text-gray-800 mb-1">Data Portability</p>
+                      <p className="text-xs text-gray-500">Download a full copy of all your wedding data in JSON format.</p>
+                    </div>
+                    <button
+                      onClick={exportData}
+                      className="whitespace-nowrap flex items-center gap-2 px-6 py-3 bg-white border border-gray-100 rounded-xl font-bold text-sm text-gray-700 hover:bg-white/80 transition-all shadow-soft"
+                    >
+                      <Download className="w-4 h-4" />
+                      Export Data
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-8 bg-red-50/50 rounded-[2rem] border border-red-50">
+                    <div className="flex-1 pr-8">
+                      <p className="font-bold text-red-900 mb-1">Danger Zone</p>
+                      <p className="text-xs text-red-700">Permanently delete your account and all associated planning data.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowDeleteModal(true)
+                        setConfirmText('')
+                      }}
+                      className="whitespace-nowrap flex items-center gap-2 px-6 py-3 bg-white border border-red-100 rounded-xl font-bold text-sm text-red-600 hover:bg-red-50 transition-all shadow-soft"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Account
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
         </div>
       </div>
 
-      {/* Wedding Details */}
-      <div className="card">
-        <h3 className="font-medium text-gray-800 mb-4">Wedding Details</h3>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Partner 1 Name</label>
-              <input
-                type="text"
-                className="input-field"
-                value={wedding.partner1Name}
-                onChange={(e) => setWedding({ partner1Name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Partner 2 Name</label>
-              <input
-                type="text"
-                className="input-field"
-                value={wedding.partner2Name}
-                onChange={(e) => setWedding({ partner2Name: e.target.value })}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Wedding Date</label>
-            <input
-              type="date"
-              className="input-field"
-              value={wedding.weddingDate}
-              onChange={(e) => setWedding({ weddingDate: e.target.value })}
+      {/* Delete Account Modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Venue</label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="Enter your venue name"
-              value={wedding.venue}
-              onChange={(e) => setWedding({ venue: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Wedding Theme</label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="e.g., Rustic Elegance, Modern Minimalist"
-              value={wedding.theme}
-              onChange={(e) => setWedding({ theme: e.target.value })}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Total Budget ($)</label>
-              <input
-                type="number"
-                className="input-field"
-                value={wedding.totalBudget || ''}
-                onChange={(e) => setWedding({ totalBudget: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Guests</label>
-              <input
-                type="number"
-                className="input-field"
-                value={wedding.estimatedGuests || ''}
-                onChange={(e) => setWedding({ estimatedGuests: Number(e.target.value) })}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Wedding Day Schedule */}
-      <div className="card">
-        <h3 className="font-medium text-gray-800 mb-4">Wedding Day Schedule</h3>
-        <p className="text-sm text-gray-500 mb-4">Set the default start and end times for your wedding day timeline.</p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Day Start Time</label>
-            <input
-              type="time"
-              className="input-field"
-              value={wedding.timelineStartTime || '08:00'}
-              onChange={(e) => setWedding({ timelineStartTime: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Day End Time</label>
-            <input
-              type="time"
-              className="input-field"
-              value={wedding.timelineEndTime || '23:00'}
-              onChange={(e) => setWedding({ timelineEndTime: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Feature Selection */}
-      <div className="card">
-        <h3 className="font-medium text-gray-800 mb-2">Feature Selection</h3>
-        <p className="text-sm text-gray-500 mb-6">Choose which tools to include in your dashboard.</p>
-
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          {modules.map((mod) => (
-            <button
-              key={mod.id}
-              onClick={() => {
-                const current = appSettings.enabledModules || []
-                const updated = current.includes(mod.id)
-                  ? current.filter(id => id !== mod.id)
-                  : [...current, mod.id]
-                updateAppSettings({ enabledModules: updated })
-              }}
-              className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 text-center
-                ${appSettings.enabledModules.includes(mod.id)
-                  ? 'border-primary-500 bg-primary-50 text-primary-700'
-                  : 'border-gray-100 hover:border-primary-200 text-gray-400'}
-                ${mod.required ? 'opacity-70 cursor-not-allowed' : ''}`}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl border border-red-100"
             >
-              <mod.icon className={`w-8 h-8 ${appSettings.enabledModules.includes(mod.id) ? 'text-primary-600' : 'text-gray-300'}`} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">{mod.label}</span>
-              {mod.required && <span className="text-[8px] italic">(Default)</span>}
-            </button>
-          ))}
-        </div>
-      </div>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
 
-      {/* Data Summary */}
-      <div className="card">
-        <h3 className="font-medium text-gray-800 mb-4">Your Wedding Data</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-3 bg-gray-50 rounded-lg text-center">
-            <p className="text-2xl font-serif text-primary-600">{checklist.length}</p>
-            <p className="text-sm text-gray-500">Tasks</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded-lg text-center">
-            <p className="text-2xl font-serif text-primary-600">{budgetItems.length}</p>
-            <p className="text-sm text-gray-500">Budget Items</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded-lg text-center">
-            <p className="text-2xl font-serif text-primary-600">{guests.length}</p>
-            <p className="text-sm text-gray-500">Guests</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded-lg text-center">
-            <p className="text-2xl font-serif text-primary-600">{vendors.length}</p>
-            <p className="text-sm text-gray-500">Vendors</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded-lg text-center">
-            <p className="text-2xl font-serif text-primary-600">{tables.length}</p>
-            <p className="text-sm text-gray-500">Tables</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded-lg text-center">
-            <p className="text-2xl font-serif text-primary-600">{timelineEvents.length}</p>
-            <p className="text-sm text-gray-500">Timeline Events</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded-lg text-center">
-            <p className="text-2xl font-serif text-primary-600">{photos.length}</p>
-            <p className="text-sm text-gray-500">Photos</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Data Management */}
-      <div className="card">
-        <h3 className="font-medium text-gray-800 mb-4">Data Management</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-800">Export Data</p>
-              <p className="text-sm text-gray-500">Download all your wedding data as a JSON file</p>
-            </div>
-            <button onClick={exportData} className="btn-secondary">
-              Export
-            </button>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-800">Import Data</p>
-              <p className="text-sm text-gray-500">Restore from a previous backup</p>
-            </div>
-            <label className="btn-secondary cursor-pointer">
-              Import
-              <input
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    const reader = new FileReader()
-                    reader.onload = (event) => {
-                      try {
-                        const data = JSON.parse(event.target?.result as string)
-                        if (data.wedding) {
-                          localStorage.setItem('wedding-planner-storage', JSON.stringify({ state: data }))
-                          window.location.reload()
-                        }
-                      } catch {
-                        alert('Invalid backup file')
-                      }
-                    }
-                    reader.readAsText(file)
-                  }
-                }}
-              />
-            </label>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
-            <div>
-              <p className="font-medium text-red-800">Clear All Data</p>
-              <p className="text-sm text-red-600">Permanently delete all wedding data</p>
-            </div>
-            <button onClick={clearAllData} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
-              Clear Data
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Privacy Policy */}
-      <div className="card">
-        <h3 className="font-medium text-gray-800 mb-4">Privacy & Security</h3>
-        <div className="space-y-3 text-sm text-gray-600">
-          <p className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
-            Your data is stored locally on your device
-          </p>
-          <p className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
-            We never sell your data to third parties
-          </p>
-          <p className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
-            All data is encrypted in transit
-          </p>
-          <p className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
-            You can export or delete your data at any time
-          </p>
-        </div>
-      </div>
-
-      {/* About */}
-      <div className="card">
-        <h3 className="font-medium text-gray-800 mb-4">About Beginnings and Endings</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Beginnings and Endings is your all-in-one wedding planning command center. We combined the best features
-          from top wedding planning apps to create a single, comprehensive solution that reduces the
-          stress of wedding planning.
-        </p>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="font-medium text-gray-700">Inspired by:</p>
-            <ul className="text-gray-500 mt-1 space-y-1">
-              <li>• The Knot</li>
-              <li>• Zola</li>
-              <li>• Joy (WithJoy)</li>
-              <li>• Bridebook</li>
-              <li>• Prismm</li>
-            </ul>
-          </div>
-          <div>
-            <p className="font-medium text-gray-700">Key Features:</p>
-            <ul className="text-gray-500 mt-1 space-y-1">
-              <li>• Adaptive Checklists</li>
-              <li>• Smart Budget Tracking</li>
-              <li>• Visual Seating Charts</li>
-              <li>• QR Photo Sharing</li>
-              <li>• Privacy-First Design</li>
-            </ul>
-          </div>
-        </div>
-        <p className="text-xs text-gray-400 mt-4">Version 1.0.0 | Made with ❤️ for couples everywhere</p>
-      </div>
-
-      {/* Clear Data Confirmation Modal */}
-      {
-        showClearModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-            <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-red-100 animate-in zoom-in-95 duration-300">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6 mx-auto">
-                <span className="text-3xl">⚠️</span>
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-8 mx-auto">
+                <AlertTriangle className="w-10 h-10 text-red-600" />
               </div>
-              <h2 className="text-2xl font-serif text-gray-800 text-center mb-2">Delete Everything?</h2>
-              <p className="text-gray-600 text-center mb-8 text-sm leading-relaxed">
-                This action is permanent and cannot be undone. All your guests, budget items, and planning progress will be lost.
+
+              <h3 className="text-2xl font-serif text-gray-900 text-center mb-4">Are you absolutely sure?</h3>
+              <p className="text-gray-500 text-center mb-8 text-sm leading-relaxed">
+                This action is irreversible. All your guests, budget data, inspiration boards, and photos will be permanently deleted.
               </p>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 text-center">
-                    Type <span className="text-red-600">"Clear Data"</span> to proceed
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] text-center block w-full">
+                    Type <span className="text-red-600">DELETE</span> to confirm
                   </label>
                   <input
                     type="text"
-                    className="input-field text-center font-medium border-red-200 focus:border-red-500 focus:ring-red-500"
-                    placeholder="Clear Data"
                     value={confirmText}
                     onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="DELETE"
+                    className="w-full bg-red-50/30 border border-red-100 rounded-2xl px-5 py-4 text-center font-bold text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                     autoFocus
                   />
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <button
-                    onClick={() => setShowClearModal(false)}
-                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                    onClick={() => setShowDeleteModal(false)}
+                    className="flex-1 py-4 px-6 border border-gray-100 rounded-2xl font-bold text-gray-500 hover:bg-gray-50 transition-all"
                   >
-                    Keep My Data
+                    Cancel
                   </button>
                   <button
-                    onClick={handleClearData}
-                    disabled={confirmText !== 'Clear Data'}
-                    className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all duration-300 ${confirmText === 'Clear Data'
-                      ? 'bg-red-600 text-white shadow-lg shadow-red-200 hover:bg-red-700'
+                    onClick={handleDeleteAccount}
+                    disabled={confirmText !== 'DELETE'}
+                    className={`flex-1 py-4 px-6 rounded-2xl font-bold transition-all ${confirmText === 'DELETE'
+                      ? 'bg-red-600 text-white shadow-xl shadow-red-200 hover:bg-red-700'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       }`}
                   >
-                    Delete All
+                    Delete Now
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
-        )
-      }
-    </div >
+        )}
+      </AnimatePresence>
+    </div>
   )
 }

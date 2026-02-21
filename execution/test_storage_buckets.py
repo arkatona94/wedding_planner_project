@@ -28,7 +28,7 @@ def test_buckets_exist(supabase: Client):
     try:
         buckets = supabase.storage.list_buckets()
 
-        bucket_names = [b["name"] for b in buckets]
+        bucket_names = [b.name for b in buckets]
 
         results = {}
         for expected in EXPECTED_BUCKETS:
@@ -54,7 +54,7 @@ def test_bucket_public_access(supabase: Client, bucket_name: str):
         # Get bucket details
         bucket = supabase.storage.get_bucket(bucket_name)
 
-        if bucket and bucket.get("public"):
+        if bucket and bucket.public:
             print(f"✅ PASS: '{bucket_name}' is public")
             return True
         else:

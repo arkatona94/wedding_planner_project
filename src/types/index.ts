@@ -32,6 +32,7 @@ export interface ChecklistItem {
   completed: boolean
   priority: 'high' | 'medium' | 'low'
   notes: string
+  assignedTo?: 'us' | 'partner1' | 'partner2'
 }
 
 export type ChecklistCategory =
@@ -57,6 +58,9 @@ export interface BudgetItem {
   paid: number
   dueDate: string
   notes: string
+  // New fields for enhanced tracking
+  paymentStatus?: 'pending' | 'deposit' | 'paid'
+  receiptUrl?: string
 }
 
 export interface PartyMember {
@@ -80,7 +84,9 @@ export interface Guest {
   plusOne: boolean
   plusOneName: string
   tableAssignment: string | null
-  group: string
+  ageGroup: AgeGroup
+  giftSent: boolean
+  group: GuestGroup
   isBrideSide: boolean
   isGroomSide: boolean
   notes: string
@@ -93,6 +99,9 @@ export interface Guest {
   reminderSent?: boolean
   lastCommunicationAt?: string
 }
+
+export type GuestGroup = 'Family' | 'Friends' | 'Work' | 'Other' | (string & {})
+export type AgeGroup = 'Adult' | 'Child' | 'Infant'
 
 export interface GuestAddress {
   street: string
@@ -124,6 +133,11 @@ export interface Vendor {
   address?: string
   description?: string
   isGenerated?: boolean
+  // Discovery fields
+  qualityScore?: number
+  images?: string[]
+  verified?: boolean
+  sampleReview?: string
 }
 
 export type VendorCategory =
@@ -212,15 +226,38 @@ export interface AppSettings {
   vtonApiUrl?: string // Optional custom API for FASHN VTON
   replicateApiToken?: string // Replicate API token for IDM-VTON (best quality)
   fashnApiKey?: string // FASHN API key for official try-on v1.6
+
+  // New notification settings
+  marketingEmail?: boolean
+  marketingSms?: boolean
+  notificationFrequency?: 'weekly' | 'daily' | 'real-time'
+  planningEmail?: boolean
+  planningSms?: boolean
+  planningTimeline?: ('1 month' | '1 week' | '3 days')[]
+  vendorEmail?: boolean
+  vendorSms?: boolean
+  rsvpEmail?: boolean
+  rsvpSms?: boolean
+
+  // Partner collaboration
+  partnerName?: string
+  partnerEmail?: string
+  partnerStatus?: 'invited' | 'active'
+  partnerPermission?: 'view' | 'collaborative' | 'admin'
+  openaiApiKey?: string // OpenAI API key for ChatGPT features
 }
 
 export interface AuthUser {
   id: string
   email: string
   name?: string
+  firstName?: string
+  lastName?: string
+  phone?: string
   city?: string
   state?: string
   zipCode?: string
+  isPremium?: boolean
 }
 
 export interface NotificationPreferences {

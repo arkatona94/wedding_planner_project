@@ -33,14 +33,9 @@ export default function RSVP() {
     }, [weddingId])
 
     const fetchWeddingDetails = async () => {
-        const { data, error } = await supabase
-            .from('weddings')
-            .select(`
-                *,
-                profiles (email, full_name)
-            `)
-            .eq('id', weddingId)
-            .single()
+        const { data, error } = await supabase.rpc('get_wedding_for_rsvp', {
+            p_wedding_id: weddingId
+        })
 
         if (error) {
             setError('Could not find wedding details. Please check the link.')
@@ -55,12 +50,11 @@ export default function RSVP() {
         setError(null)
 
         try {
-            const { data, error: searchError } = await supabase
-                .from('guests')
-                .select('*')
-                .eq('wedding_id', weddingId)
-                .ilike('first_name', firstName.trim())
-                .ilike('last_name', lastName.trim())
+            const { data, error: searchError } = await supabase.rpc('search_guests_for_rsvp', {
+                p_wedding_id: weddingId,
+                p_first_name: firstName.trim(),
+                p_last_name: lastName.trim()
+            })
 
             if (searchError) throw searchError
 
@@ -94,17 +88,14 @@ export default function RSVP() {
         setError(null)
 
         try {
-            const { error: updateError } = await supabase
-                .from('guests')
-                .update({
-                    rsvp_status: status,
-                    meal_choice: status === 'attending' ? meal : null,
-                    dietary_restrictions: status === 'attending' ? dietary : [],
-                    plus_one_name: (status === 'attending' && plusOneAttending) ? plusOneName : null,
-                    notes: notes,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', selectedGuest.id)
+            const { error: updateError } = await supabase.rpc('update_guest_rsvp', {
+                p_guest_id: selectedGuest.id,
+                p_status: status,
+                p_meal: status === 'attending' ? meal : null,
+                p_dietary: status === 'attending' ? dietary : [],
+                p_plus_one_name: (status === 'attending' && plusOneAttending) ? plusOneName : null,
+                p_notes: notes
+            })
 
             if (updateError) throw updateError
 

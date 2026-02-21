@@ -1,134 +1,95 @@
-// OpenAI API utilities for AI-powered features
+import OpenAI from 'openai';
 
 interface TryOnResult {
-  success: boolean
-  imageUrl?: string
-  error?: string
+  success: boolean;
+  imageUrl?: string;
+  error?: string;
 }
 
 /**
- * Generate a virtual try-on image using OpenAI's DALL-E
- * This creates an AI-generated image of the person wearing the dress
+ * Generate a virtual try-on image using OpenAI (ChatGPT/DALL-E)
+ * This uses GPT-4o with Vision to analyze the images and then DALL-E 3 to generate the merge.
  */
-export async function generateDressTryOn(
+export async function generateDressTryOnChatGPT(
   apiKey: string,
   bridePhotoUrl: string,
   dressImageUrl: string
 ): Promise<TryOnResult> {
   if (!apiKey) {
-    return { success: false, error: 'OpenAI API key not configured' }
+    return { success: false, error: 'OpenAI API key not configured' };
   }
 
+  const openai = new OpenAI({
+    apiKey: apiKey,
+    dangerouslyAllowBrowser: true // Essential for client-side usage
+  });
+
   try {
-    // First, we'll use GPT-4 Vision to analyze both images and create a detailed prompt
-    const analysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a fashion AI assistant. Analyze the person's photo and the dress, then create a detailed DALL-E prompt to generate a realistic image of this person wearing this exact dress.
+    console.log('Analyzing images with ChatGPT (Vision)...');
 
-Focus on:
-- The person's physical features (hair color, skin tone, body type)
-- The dress design (style, color, fabric, details, embellishments)
-- Create a prompt that will generate a beautiful bridal/fashion photo
+    // 1. Analyze both images using GPT-4o
+    const analysisResponse = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Analyze these two images. Image 1 is a bride. Image 2 is a wedding dress. " +
+                "Create a detailed DALL-E 3 prompt to show THIS EXACT bride wearing THIS EXACT dress. " +
+                "Describe the bride's facial features, hair, and skin tone specifically to maintain her likeness. " +
+                "Describe the dress's cut, fabric, and details accurately. " +
+                "The output should be a single prompt for DALL-E 3 that results in a professional fashion photo."
+            },
+            {
+              type: "image_url",
+              image_url: { url: bridePhotoUrl }
+            },
+            {
+              type: "image_url",
+              image_url: { url: dressImageUrl }
+            }
+          ],
+        },
+      ],
+      max_tokens: 300,
+    });
 
-Output ONLY the DALL-E prompt, nothing else. The prompt should be detailed but under 1000 characters.`
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Create a DALL-E prompt to show this person wearing this dress:'
-              },
-              {
-                type: 'image_url',
-                image_url: { url: bridePhotoUrl, detail: 'high' }
-              },
-              {
-                type: 'image_url',
-                image_url: { url: dressImageUrl, detail: 'high' }
-              }
-            ]
-          }
-        ],
-        max_tokens: 500,
-      }),
-    })
-
-    if (!analysisResponse.ok) {
-      const error = await analysisResponse.json()
-      throw new Error(error.error?.message || 'Failed to analyze images')
-    }
-
-    const analysisData = await analysisResponse.json()
-    const generationPrompt = analysisData.choices[0]?.message?.content
+    const generationPrompt = analysisResponse.choices[0]?.message?.content;
 
     if (!generationPrompt) {
-      throw new Error('Failed to generate image description')
+      throw new Error('ChatGPT failed to generate an analysis of the images.');
     }
 
-    // Now generate the try-on image using DALL-E 3
-    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: `Professional bridal fashion photography: ${generationPrompt}. Ultra realistic, high quality, elegant lighting, magazine quality photo.`,
-        n: 1,
-        size: '1024x1792', // Portrait orientation for dress photos
-        quality: 'hd',
-        style: 'natural',
-      }),
-    })
+    console.log('Generated ChatGPT Prompt:', generationPrompt);
+    console.log('Generating merge with DALL-E 3...');
 
-    if (!imageResponse.ok) {
-      const error = await imageResponse.json()
-      throw new Error(error.error?.message || 'Failed to generate image')
-    }
+    // 2. Generate the image using DALL-E 3
+    const generationResponse = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: `A high-resolution professional fashion photography shot: ${generationPrompt}`,
+      n: 1,
+      size: "1024x1024",
+      quality: "hd",
+    });
 
-    const imageData = await imageResponse.json()
-    const generatedImageUrl = imageData.data[0]?.url
+    const imageUrl = generationResponse.data?.[0]?.url;
 
-    if (!generatedImageUrl) {
-      throw new Error('No image was generated')
+    if (!imageUrl) {
+      throw new Error('DALL-E 3 failed to generate the image.');
     }
 
     return {
       success: true,
-      imageUrl: generatedImageUrl,
-    }
-  } catch (error) {
-    console.error('Try-on generation error:', error)
+      imageUrl: imageUrl
+    };
+
+  } catch (error: any) {
+    console.error('ChatGPT Try-on error:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to generate try-on image',
-    }
-  }
-}
-
-/**
- * Check if OpenAI API key is valid
- */
-export async function validateApiKey(apiKey: string): Promise<boolean> {
-  try {
-    const response = await fetch('https://api.openai.com/v1/models', {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-      },
-    })
-    return response.ok
-  } catch {
-    return false
+      error: error.message || 'An error occurred during the ChatGPT merge process.'
+    };
   }
 }

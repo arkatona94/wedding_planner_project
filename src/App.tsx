@@ -23,6 +23,11 @@ import ResetPassword from './pages/ResetPassword'
 import RSVP from './pages/RSVP'
 import GuestRegister from './pages/GuestRegister'
 import GuestPortal from './pages/GuestPortal'
+import Onboarding from './pages/Onboarding'
+import Pricing from './pages/Pricing'
+import VendorDiscovery from './pages/VendorDiscovery'
+import VendorSearch from './pages/VendorSearch'
+import VendorProfile from './pages/VendorProfile'
 import { useWeddingStore } from './store/weddingStore'
 import { Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
@@ -131,7 +136,8 @@ function App() {
             dueDate: item.due_date || '',
             completed: item.completed,
             priority: item.priority as any,
-            notes: ''
+            notes: item.notes || '',
+            assignedTo: item.assigned_to
           })))
         }
 
@@ -164,7 +170,9 @@ function App() {
             plusOne: item.plus_one,
             plusOneName: item.plus_one_name || '',
             tableAssignment: item.table_assignment,
-            group: item.group || '',
+            group: (item.group || 'Other') as any,
+            ageGroup: (item.age_group || 'Adult') as any,
+            giftSent: item.gift_sent || false,
             isBrideSide: item.is_bride_side,
             isGroomSide: item.is_groom_side,
             address: item.address as any,
@@ -282,6 +290,7 @@ function App() {
       <Route path="/guest/register" element={<GuestRegister />} />
       <Route path="/guest/register/:inviteCode" element={<GuestRegister />} />
       <Route path="/guest/portal" element={<GuestPortal />} />
+      <Route path="/onboarding" element={<Onboarding />} />
 
       {/* Main app with Layout - Protected */}
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -290,7 +299,10 @@ function App() {
         <Route path="budget" element={<Budget />} />
         <Route path="budget/detailed" element={<DetailedBudget />} />
         <Route path="guests" element={<Guests />} />
-        <Route path="vendors" element={<Vendors />} />
+        <Route path="vendors" element={<VendorDiscovery />} />
+        <Route path="vendors/manage" element={<Vendors />} />
+        <Route path="vendors/search/:categoryId" element={<VendorSearch />} />
+        <Route path="vendors/profile/:id" element={<VendorProfile />} />
         <Route path="seating" element={<Seating />} />
         <Route path="timeline" element={<Timeline />} />
         <Route path="photos" element={<Photos />} />
@@ -299,6 +311,7 @@ function App() {
         <Route path="settings" element={<Settings />} />
         <Route path="marriage-laws" element={<MarriageLaws />} />
         <Route path="communications" element={<Communication />} />
+        <Route path="pricing" element={<Pricing />} />
       </Route>
     </Routes>
   )

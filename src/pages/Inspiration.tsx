@@ -2,9 +2,11 @@ import { useState, useCallback, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Sparkles } from 'lucide-react'
 import { useWeddingStore } from '../store/weddingStore'
-import { generateWithFashnApi, generateWithReplicateVton } from '../lib/gemini'
+import { generateWithFashnApi, generateWithReplicateVton, generateDressTryOn } from '../lib/gemini'
+import { generateDressTryOnChatGPT } from '../lib/openai'
 import { compressImage, fileToCompressedDataUrl } from '../lib/imageUtils'
 import type { BoardCategory, InspirationBoard, InspirationImage } from '../types'
+import UpgradeModal from '../components/UpgradeModal'
 
 const extractImageUrl = (dataTransfer: DataTransfer): string | null => {
   // Check HTML first - most reliable for web images (Pinterest, etc.)
@@ -177,6 +179,7 @@ export default function Inspiration() {
   const [selectedBoard, setSelectedBoard] = useState<InspirationBoard | null>(null)
   const [viewingImage, setViewingImage] = useState<InspirationImage | null>(null)
   const [editingBoard, setEditingBoard] = useState<InspirationBoard | null>(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   // Try-on state
   const [tryOnImage, setTryOnImage] = useState<InspirationImage | null>(null)
@@ -193,7 +196,7 @@ export default function Inspiration() {
   const reorderBoardImages = useWeddingStore((state) => state.reorderBoardImages)
   const updateBoardImage = useWeddingStore((state) => state.updateBoardImage)
   // uploadFile removed - using data URLs directly for reliability
-  const appSettings = useWeddingStore((state) => state.appSettings)
+  const { appSettings, user } = useWeddingStore()
 
   const [isUploading, setIsUploading] = useState(false)
 
@@ -247,7 +250,15 @@ export default function Inspiration() {
 
     setIsUploading(true)
     try {
+      const fashionBoardCount = inspirationBoards
+        .filter(b => b.category === 'fashion')
+        .reduce((sum, b) => sum + b.images.length, 0)
+
       for (const file of Array.from(files)) {
+        if (!user?.isPremium && selectedBoard.category === 'fashion' && (fashionBoardCount + Array.from(files).indexOf(file)) >= 5) {
+          setShowUpgradeModal(true)
+          break
+        }
         // Use data URL directly for reliable, fast uploads
         const url = await fileToDataUrl(file)
         if (url) {
@@ -271,6 +282,16 @@ export default function Inspiration() {
 
   const handleAddImageUrl = async () => {
     if (!newImage.url.trim() || !selectedBoard) return
+
+    const fashionBoardCount = inspirationBoards
+      .filter(b => b.category === 'fashion')
+      .reduce((sum, b) => sum + b.images.length, 0)
+
+    if (!user?.isPremium && selectedBoard.category === 'fashion' && fashionBoardCount >= 5) {
+      setShowUpgradeModal(true)
+      return
+    }
+
     await addImageToBoard(selectedBoard.id, {
       url: newImage.url,
       source: newImage.source || 'URL',
@@ -318,8 +339,16 @@ export default function Inspiration() {
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       setIsUploading(true)
       try {
-        for (const file of Array.from(e.dataTransfer.files)) {
+        const fashionBoardCount = inspirationBoards
+          .filter(b => b.category === 'fashion')
+          .reduce((sum, b) => sum + b.images.length, 0)
+
+        for (const [index, file] of Array.from(e.dataTransfer.files).entries()) {
           if (file.type.startsWith('image/')) {
+            if (!user?.isPremium && selectedBoard.category === 'fashion' && (fashionBoardCount + index) >= 5) {
+              setShowUpgradeModal(true)
+              break
+            }
             // Use data URL directly for fast, reliable uploads
             const url = await fileToDataUrl(file)
             if (url) {
@@ -510,7 +539,7 @@ export default function Inspiration() {
     try {
       let result;
 
-      // Priority: FASHN API > Replicate > Local VTON > Gemini
+      // Priority: FASHN API > ChatGPT > Replicate > Gemini > Local VTON
       if (appSettings.fashnApiKey) {
         setTryOnStatus('Connecting to FASHN AI...')
         result = await generateWithFashnApi(
@@ -518,10 +547,25 @@ export default function Inspiration() {
           appSettings.bridePhoto,
           image.url
         )
+      } else if (appSettings.openaiApiKey) {
+        setTryOnStatus('Merging with ChatGPT...')
+        result = await generateDressTryOnChatGPT(
+          appSettings.openaiApiKey,
+          appSettings.bridePhoto,
+          image.url
+        )
       } else if (appSettings.replicateApiToken) {
         setTryOnStatus('Connecting to Replicate AI...')
         result = await generateWithReplicateVton(
           appSettings.replicateApiToken,
+          appSettings.bridePhoto,
+          image.url
+        )
+      } else if (appSettings.geminiApiKey) {
+        setTryOnStatus('Generating with Gemini (Experimental)...')
+        // "Nano Banana" style generation using Gemini 2.0 Flash
+        result = await generateDressTryOn(
+          appSettings.geminiApiKey,
           appSettings.bridePhoto,
           image.url
         )
@@ -533,7 +577,10 @@ export default function Inspiration() {
           appSettings.bridePhoto,
           image.url,
           image.notes || "A wedding dress",
-          appSettings.geminiApiKey // Use user's key to enhance description
+          // We don't pass the key here anymore as we have a dedicated Gemini path above,
+          // but we could still pass it for description enhancement if we wanted.
+          // For now, let's keep it simple.
+          undefined
         )
 
         result = { success: true, imageUrl }
@@ -547,11 +594,46 @@ export default function Inspiration() {
           await updateBoardImage(selectedBoard.id, image.id, { tryOnUrl: result.imageUrl })
         }
       } else {
-        setTryOnError(result.error || 'The AI service returned an unknown error. Please try again.')
+        let errorMsg = result.error || 'The AI service returned an unknown error. Please try again.'
+        // Handle case where error might be an object stringified poorly
+        if (typeof errorMsg === 'object') {
+          try {
+            errorMsg = JSON.stringify(errorMsg)
+          } catch {
+            errorMsg = 'Unknown error object returned'
+          }
+        }
+        setTryOnError(errorMsg)
       }
     } catch (err) {
       console.error('Try-on error:', err)
-      setTryOnError(err instanceof Error ? err.message : 'An unexpected error occurred during the try-on process.')
+
+      let errorMessage = 'An unexpected error occurred during the try-on process.'
+
+      if (err instanceof Error) {
+        errorMessage = err.message
+        // Check if message is unhelpful
+        if (errorMessage === '[object Object]') {
+          try {
+            errorMessage = JSON.stringify(err)
+          } catch {
+            errorMessage = 'Unknown error structure'
+          }
+        }
+      } else if (typeof err === 'string') {
+        errorMessage = err
+      } else if (typeof err === 'object' && err !== null) {
+        // Try to extract useful info from object
+        const anyErr = err as any
+        errorMessage = anyErr.message || anyErr.error || anyErr.detail || JSON.stringify(err)
+      }
+
+      // Final sanity check
+      if (errorMessage === '[object Object]') {
+        errorMessage = 'An error occurred (details unavailable)'
+      }
+
+      setTryOnError(errorMessage)
     } finally {
       setTryOnStatus(null)
     }
@@ -1309,6 +1391,16 @@ export default function Inspiration() {
           </div>
         </div>
       )}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        title="💎 You've saved 5 dresses!"
+        description="Upgrade to save unlimited + compare side-by-side"
+        feature="Unlimited dress saves and AI side-by-side comparisons"
+        type="dresses"
+        limitValue={5}
+        currentValue={5}
+      />
     </div>
   )
 }

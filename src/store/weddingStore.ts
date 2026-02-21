@@ -193,7 +193,10 @@ const defaultAppSettings: AppSettings = {
   enabledModules: ['dashboard', 'checklist', 'budget'],
   geminiApiKey: import.meta.env.VITE_GEMINI_API_KEY || '',
   replicateApiToken: import.meta.env.VITE_REPLICATE_API_TOKEN || '',
-  fashnApiKey: import.meta.env.VITE_FASHN_API_KEY || ''
+  fashnApiKey: import.meta.env.VITE_FASHN_API_KEY || '',
+  openaiApiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
+  notificationFrequency: 'weekly',
+  planningTimeline: ['1 month', '1 week']
 }
 
 // Default checklist items based on wedding planning best practices
@@ -306,6 +309,9 @@ export const useWeddingStore = create<WeddingState>()(
         // Sync to Supabase profiles table
         const dbUpdates: Record<string, any> = {}
         if (updates.name !== undefined) dbUpdates.full_name = updates.name
+        if (updates.firstName !== undefined) dbUpdates.first_name = updates.firstName
+        if (updates.lastName !== undefined) dbUpdates.last_name = updates.lastName
+        if (updates.phone !== undefined) dbUpdates.phone = updates.phone
         if (updates.city !== undefined) dbUpdates.city = updates.city
         if (updates.state !== undefined) dbUpdates.state = updates.state
         if (updates.zipCode !== undefined) dbUpdates.zip_code = updates.zipCode
@@ -379,7 +385,8 @@ export const useWeddingStore = create<WeddingState>()(
                 category: newItem.category,
                 due_date: newItem.dueDate || null,
                 completed: newItem.completed,
-                priority: newItem.priority
+                priority: newItem.priority,
+                assigned_to: newItem.assignedTo
               })
               .then(({ error }) => {
                 if (error) console.error('Error adding checklist item to Supabase:', error)
@@ -402,6 +409,7 @@ export const useWeddingStore = create<WeddingState>()(
             if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate || null
             if (updates.completed !== undefined) dbUpdates.completed = updates.completed
             if (updates.priority !== undefined) dbUpdates.priority = updates.priority
+            if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo
 
             supabase
               .from('checklist_items')
@@ -478,32 +486,146 @@ export const useWeddingStore = create<WeddingState>()(
           const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Removed confusing chars: 0, O, I, 1
           const inviteCode = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 
+          const newGuest = {
+            ...guest,
+            id: uuidv4(),
+            inviteCode,
+            partyMembers: guest.partyMembers || []
+          } as Guest
+
+          if (state.user) {
+            supabase
+              .from('guests')
+              .insert({
+                id: newGuest.id,
+                wedding_id: state.wedding.id,
+                first_name: newGuest.firstName,
+                last_name: newGuest.lastName,
+                email: newGuest.email,
+                phone: newGuest.phone,
+                rsvp_status: newGuest.rsvpStatus,
+                meal_choice: newGuest.mealChoice,
+                dietary_restrictions: newGuest.dietaryRestrictions,
+                plus_one: newGuest.plusOne,
+                plus_one_name: newGuest.plusOneName,
+                group: newGuest.group,
+                age_group: newGuest.ageGroup,
+                gift_sent: newGuest.giftSent,
+                is_bride_side: newGuest.isBrideSide,
+                is_groom_side: newGuest.isGroomSide,
+                address: newGuest.address,
+                notes: newGuest.notes,
+                invite_code: newGuest.inviteCode
+              })
+              .then(({ error }) => {
+                if (error) console.error('Error adding guest to Supabase:', error)
+              })
+          }
+
           return {
-            guests: [...state.guests, {
-              ...guest,
-              id: uuidv4(),
-              inviteCode,
-              partyMembers: guest.partyMembers || []
-            }]
+            guests: [...state.guests, newGuest]
           }
         }),
       updateGuest: (id, updates) =>
-        set((state) => ({
-          guests: state.guests.map((guest) =>
-            guest.id === id ? { ...guest, ...updates } : guest
-          )
-        })),
+        set((state) => {
+          if (state.user) {
+            const dbUpdates: any = {}
+            if (updates.firstName !== undefined) dbUpdates.first_name = updates.firstName
+            if (updates.lastName !== undefined) dbUpdates.last_name = updates.lastName
+            if (updates.email !== undefined) dbUpdates.email = updates.email
+            if (updates.phone !== undefined) dbUpdates.phone = updates.phone
+            if (updates.rsvpStatus !== undefined) dbUpdates.rsvp_status = updates.rsvpStatus
+            if (updates.mealChoice !== undefined) dbUpdates.meal_choice = updates.mealChoice
+            if (updates.dietaryRestrictions !== undefined) dbUpdates.dietary_restrictions = updates.dietaryRestrictions
+            if (updates.plusOne !== undefined) dbUpdates.plus_one = updates.plusOne
+            if (updates.plusOneName !== undefined) dbUpdates.plus_one_name = updates.plusOneName
+            if (updates.group !== undefined) dbUpdates.group = updates.group
+            if (updates.ageGroup !== undefined) dbUpdates.age_group = updates.ageGroup
+            if (updates.giftSent !== undefined) dbUpdates.gift_sent = updates.giftSent
+            if (updates.isBrideSide !== undefined) dbUpdates.is_bride_side = updates.isBrideSide
+            if (updates.isGroomSide !== undefined) dbUpdates.is_groom_side = updates.isGroomSide
+            if (updates.address !== undefined) dbUpdates.address = updates.address
+            if (updates.notes !== undefined) dbUpdates.notes = updates.notes
+            if (updates.inviteCode !== undefined) dbUpdates.invite_code = updates.inviteCode
+
+            if (Object.keys(dbUpdates).length > 0) {
+              supabase
+                .from('guests')
+                .update(dbUpdates)
+                .eq('id', id)
+                .then(({ error }) => {
+                  if (error) console.error('Error updating guest in Supabase:', error)
+                })
+            }
+          }
+
+          return {
+            guests: state.guests.map((guest) =>
+              guest.id === id ? { ...guest, ...updates } : guest
+            )
+          }
+        }),
       deleteGuest: (id) =>
-        set((state) => ({
-          guests: state.guests.filter((guest) => guest.id !== id)
-        })),
+        set((state) => {
+          if (state.user) {
+            supabase
+              .from('guests')
+              .delete()
+              .eq('id', id)
+              .then(({ error }) => {
+                if (error) console.error('Error deleting guest from Supabase:', error)
+              })
+          }
+          return {
+            guests: state.guests.filter((guest) => guest.id !== id)
+          }
+        }),
       importGuests: (newGuests) =>
-        set((state) => ({
-          guests: [
-            ...state.guests,
-            ...newGuests.map((guest) => ({ ...guest, id: uuidv4() }))
-          ]
-        })),
+        set((state) => {
+          const processedGuests = newGuests.map((guest) => ({
+            ...guest,
+            id: uuidv4(),
+            inviteCode: Math.random().toString(36).substring(2, 10).toUpperCase()
+          } as Guest))
+
+          if (state.user) {
+            const dbGuests = processedGuests.map(g => ({
+              id: g.id,
+              wedding_id: state.wedding.id,
+              first_name: g.firstName,
+              last_name: g.lastName,
+              email: g.email,
+              phone: g.phone,
+              rsvp_status: g.rsvpStatus,
+              meal_choice: g.mealChoice,
+              dietary_restrictions: g.dietaryRestrictions,
+              plus_one: g.plusOne,
+              plus_one_name: g.plusOneName,
+              group: g.group,
+              age_group: g.ageGroup,
+              gift_sent: g.giftSent,
+              is_bride_side: g.isBrideSide,
+              is_groom_side: g.isGroomSide,
+              address: g.address,
+              notes: g.notes,
+              invite_code: g.inviteCode
+            }))
+
+            supabase
+              .from('guests')
+              .insert(dbGuests)
+              .then(({ error }) => {
+                if (error) console.error('Error importing guests to Supabase:', error)
+              })
+          }
+
+          return {
+            guests: [
+              ...state.guests,
+              ...processedGuests
+            ]
+          }
+        }),
       updateGuestCommunication: (id, type) =>
         set((state) => {
           const now = new Date().toISOString()
