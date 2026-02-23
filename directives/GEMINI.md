@@ -281,6 +281,7 @@ x = 5
 ## Project-Specific Context
 
 **Current Focus Areas:**
+- Wedding Planner Project: `arkatona94/wedding_planner_project`
 - Multi-agent development application with role-based specialization
 - MCP server configuration for Context7 and Notion
 - React hooks and frontend development patterns
